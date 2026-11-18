@@ -1,5 +1,6 @@
 """Initial command-line entry point for Pump TDH Calculator."""
 from core.fluid_properties import estimate_from_ec
+from core.elevation import calculate_static_head, calculate_static_head_from_difference
 
 
 def read_float(prompt: str, default: float | None = None) -> float:
@@ -56,6 +57,49 @@ def main() -> None:
     print("\nLIMITATIONS / WARNINGS")
     for warning in fluid.warnings:
         print(f"- {warning}")
+
+    print("\\nGROUP 4: ELEVATION / STATIC HEAD")
+    print("Choose elevation input method:")
+    print("  1) Enter elevation difference directly (destination - start)")
+    print("  2) Enter start and destination elevations")
+    while True:
+        method = input("Enter 1 or 2: ").strip()
+        if method in ("1", "2"):
+            break
+        print("Invalid selection. Enter 1 or 2.")
+
+    def read_signed_finite_float(prompt: str) -> float:
+        while True:
+            try:
+                value = float(input(prompt).strip().replace(",", "."))
+                if value == value and value not in (float("inf"), float("-inf")):
+                    return value
+            except ValueError:
+                pass
+            print("Enter a valid finite number.")
+
+    if method == "1":
+        delta_z = calculate_static_head_from_difference(
+            read_signed_finite_float("Elevation difference Δz (m; positive uphill, negative downhill): ")
+        )
+        method_label = "Direct elevation difference"
+    else:
+        print("Enter both elevations relative to the SAME vertical datum.")
+        z1 = read_signed_finite_float("Start elevation z1 (m): ")
+        z2 = read_signed_finite_float("Destination elevation z2 (m): ")
+        delta_z = calculate_static_head(elevation_start_m=z1, elevation_end_m=z2)
+        method_label = "Start/end elevations"
+
+    print("\\nSTATIC HEAD RESULT")
+    print(f"Input method       : {method_label}")
+    print(f"Static head (Δz)   : {delta_z:+.3f} m")
+    if delta_z > 0:
+        print("Elevation effect   : Uphill; adds to required pump head.")
+    elif delta_z < 0:
+        print("Elevation effect   : Downhill; assists flow and reduces required pump head.")
+    else:
+        print("Elevation effect   : No net elevation difference.")
+    print("Note: this is only the elevation term, not the complete pump TDH.")
 
 
 if __name__ == "__main__":
