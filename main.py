@@ -178,6 +178,7 @@ def collect_power_results(flow_m3_h, required_tdh_m, density_kg_m3):
     shaft_power_kw = None
     curve_head = None
     curve_warning = None
+    points = []
 
     if mode == "1":
         pump_efficiency = read_optional_efficiency("Pump efficiency (%) [Enter = 100%]: ")
@@ -242,6 +243,9 @@ def collect_power_results(flow_m3_h, required_tdh_m, density_kg_m3):
         "2": "entered pump curve (missing values default to 100%)",
         "3": "100% idealized default",
     }[mode]
+    power["_input_mode"] = mode
+    power["_curve_points"] = points
+    power["_shaft_power_input_kw"] = shaft_power_kw
     return power
 
 
@@ -333,27 +337,33 @@ def calculate_and_print(inputs):
     power_result = None
     if result["total_tdh_m"] >= 0:
         mode = inputs.get("power_mode")
-        if mode == "manual":
+        if mode in ("1", "2", "3"):
             try:
                 power_result = calculate_power(
                     flow_m3_h=inputs["flow"], required_tdh_m=result["total_tdh_m"],
                     density_kg_m3=fluid.density_kg_m3,
                     pump_efficiency=inputs["pump_efficiency"],
-                    motor_efficiency=inputs["motor_efficiency"])
-                power_result["curve_head_m"] = None
-                power_result["curve_head_margin_m"] = None
-                power_result["curve_warning"] = None
-                power_result["efficiency_source"] = "manual input"
+                    motor_efficiency=inputs["motor_efficiency"],
+                    shaft_power_kw=inputs.get("shaft_power_kw") if mode == "2" else None)
+                power_result["curve_head_m"] = inputs.get("curve_head_m")
+                power_result["curve_head_margin_m"] = (
+                    inputs["curve_head_m"] - result["total_tdh_m"]
+                    if inputs.get("curve_head_m") is not None else None)
+                power_result["curve_warning"] = inputs.get("curve_warning")
+                power_result["efficiency_source"] = inputs.get("power_method_label", "configured power inputs")
             except ValueError as exc:
                 print(f"Power calculation error: {exc}")
         else:
             power_result = collect_power_results(
                 inputs["flow"], result["total_tdh_m"], fluid.density_kg_m3)
             if power_result is not None:
-                inputs["power_mode"] = "ideal" if power_result["pump_efficiency"] == 1 and power_result["motor_efficiency"] == 1 else "configured"
+                inputs["power_mode"] = power_result["_input_mode"]
                 inputs["power_method_label"] = power_result["efficiency_source"]
                 inputs["pump_efficiency"] = power_result["pump_efficiency"]
                 inputs["motor_efficiency"] = power_result["motor_efficiency"]
+                inputs["shaft_power_kw"] = power_result["_shaft_power_input_kw"]
+                inputs["curve_head_m"] = power_result["curve_head_m"]
+                inputs["curve_warning"] = power_result["curve_warning"]
 
     print("\n" + "=" * 68)
     print("FLUID PROPERTY ESTIMATES")
@@ -484,6 +494,7 @@ def main():
         ),
         "power_mode": None, "power_method_label": "Not yet configured",
         "pump_efficiency": None, "motor_efficiency": None,
+        "shaft_power_kw": None, "curve_head_m": None, "curve_warning": None,
     }
 
     while True:
