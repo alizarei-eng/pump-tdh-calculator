@@ -1,14 +1,15 @@
 # Pump TDH Calculator
 
-Python engineering project for estimating fluid properties and calculating pump Total Dynamic Head (TDH) in water-transfer systems.
+Python CLI for estimating fluid properties and calculating the required pump Total Dynamic Head (TDH) for a single steady-state flow path.
 
-## Current implementation
-- EC-based TDS estimate with user-selectable TDS/EC factor (default 0.65).
-- Temperature-dependent freshwater base properties (0–100 °C) with approximate salinity corrections.
-- Optional natural-seawater ionic-ratio profile for screening estimates.
-- User-visible warnings where EC cannot identify ionic composition.
-- Elevation difference and static-head calculation (two input methods).
-- Next modules: pipe geometry, Darcy-Weisbach losses, fittings/equipment losses and complete TDH integration.
+## Implemented
+- EC-based fluid-property screening (TDS, density, viscosity).
+- Static head using either direct Δz or start/end elevations.
+- Darcy–Weisbach major pipe loss.
+- K-based fitting and valve losses using the transferred reference fitting database.
+- Equipment differential-pressure losses (filters, heat exchangers, RO, etc.) entered from measured/manufacturer ΔP and converted to metres of fluid.
+- Boundary pressure-head and velocity-head differences.
+- Component-by-component TDH report.
 
 ## Run
 ```bash
@@ -17,12 +18,6 @@ python -m unittest discover -s tests -v
 ```
 
 ## Engineering limitations
-EC does not uniquely determine sodium, calcium, magnesium, iron, chloride, sulfate, bicarbonate or other individual constituents. Generic profile therefore reports no invented ion concentrations. The natural-seawater profile assumes standard seawater ratios and must not be applied to groundwater or RO concentrate without laboratory validation.
+This version models one steady-state flow path with one reference pipe diameter. Fitting K values are approximate and must be checked against actual geometry/manufacturer data. Equipment losses use measured or manufacturer differential pressure; no universal K is invented for filters or RO equipment. EC-derived density and viscosity are screening estimates only, especially unsuitable as final properties for concentrated brine without validation.
 
-TDS is estimated as EC(µS/cm) × factor. The default factor 0.65 is not universal. EC must be temperature-compensated to 25 °C. Density and viscosity corrections are approximate screening correlations, not a validated electrolyte equation of state. At high EC/concentrated brine, use measured or validated properties. Iron is not inferred; lime is not an ion. Calcium hardness and bicarbonate alkalinity are shown as CaCO3 equivalents only under the seawater-profile assumption.
-
-The project does not yet calculate TDH. Pump selection will also require the system curve, pump curve, efficiency, NPSH and transient checks.
-
-## Elevation / static head
-
-The CLI includes Group 4 for direct elevation difference or start/end elevations. See `docs/ELEVATION_STATIC_HEAD_FA.md`. Static head is one term of the pump energy equation, not the complete TDH.
+Not yet included: branched/multi-diameter networks, pump/system curves, pump selection, efficiency/power, NPSH, transient surge/water hammer.
