@@ -310,8 +310,23 @@ def print_input_review(inputs):
         rows.append(("18", "Interpolated pump shaft power", f"{inputs['shaft_power_kw']:.4f} kW"))
     if inputs.get("curve_head_m") is not None:
         rows.append(("19", "Interpolated pump-curve head", f"{inputs['curve_head_m']:.4f} m"))
-    if inputs.get("curve_points"):
-        for i, point in enumerate(inputs["curve_points"], 1):
+    curve_points = inputs.get("curve_points") or []
+    if inputs.get("power_mode") == "2":
+        rows.append(("20", "Pump-curve point count", str(len(curve_points))))
+        if curve_points:
+            flows = sorted(float(p["flow_m3_h"]) for p in curve_points)
+            rows.append(("21", "Pump-curve flow range", f"{flows[0]:.3f} to {flows[-1]:.3f} m³/h"))
+            interpolated_head = interpolate_curve(curve_points, inputs["flow"], "head_m")
+            rows.append(("22", "Curve head at operating flow",
+                         f"{interpolated_head:.3f} m" if interpolated_head is not None else "Outside range / unavailable"))
+            rows.append(("23", "Curve interpolation status",
+                         "Interpolated within entered range" if interpolated_head is not None else "Not interpolated; no extrapolation"))
+            for i, point in enumerate(curve_points, 1):
+                rows.append((f"C{i}", "Pump-curve point", str(point)))
+        else:
+            rows.append(("21", "Pump-curve status", "No curve points are stored; ideal power still calculated"))
+    elif curve_points:
+        for i, point in enumerate(curve_points, 1):
             rows.append((f"C{i}", "Pump-curve point", str(point)))
     if inputs.get("pipe_description"):
         rows.append(("-", "Selected pipe/catalogue", inputs["pipe_description"]))
@@ -344,54 +359,109 @@ def calculate_and_print(inputs):
     power_result = None
     if result["total_tdh_m"] >= 0:
         mode = inputs.get("power_mode")
-        if mode in ("1", "2", "3"):
-            try:
-                pump_efficiency = inputs["pump_efficiency"]
-                shaft_power = None
-                curve_head = None
-                curve_warning = None
-                if mode == "2":
-                    curve_points = inputs.get("curve_points", [])
-                    curve_head = interpolate_curve(curve_points, inputs["flow"], "head_m")
-                    curve_eta = interpolate_curve(curve_points, inputs["flow"], "pump_efficiency")
-                    shaft_power = interpolate_curve(curve_points, inputs["flow"], "shaft_power_kw")
-                    if curve_head is None:
-                        curve_warning = "Required flow is outside the entered pump-curve range. No extrapolation was made."
-                    if curve_eta is not None:
-                        pump_efficiency = curve_eta
-                    elif shaft_power is not None:
-                        hydraulic_kw = fluid.density_kg_m3 * 9.80665 * (inputs["flow"] / 3600.0) * result["total_tdh_m"] / 1000.0
-                        derived_eta = hydraulic_kw / shaft_power
-                        if 0 < derived_eta <= 1:
-                            pump_efficiency = derived_eta
+        if mode not in ("1", "2", "3"):
+            collected = collect_power_results(
+                inputs["flow"], result["total_tdh_m"], fluid.density_kg_m3)
+            if collected is not None:
+                mode = collected["_input_mode"]
+                inputs["power_mode"] = mode
+                inputs["power_method_label"] = collected["efficiency_source"]
+                inputs["pump_efficiency"] = collected["pump_efficiency"]
+                inputs["motor_efficiency"] = collected["motor_efficiency"]
+                inputs["shaft_power_kw"] = collected["_shaft_power_input_kw"]
+                inputs["curve_head_m"] = collected["curve_head_m"]
+                inputs["curve_warning"] = collected["curve_warning"]
+                inputs["curve_points"] = collected["_curve_points"]
+                power_result = collected
+
+        if power_result is None:
+            # Always calculate system hydraulic power first. Pump-curve data is
+            # optional and must never suppress the basic TDH power result.
+            pump_efficiency = inputs.get("pump_efficiency") or 1.0
+            motor_efficiency = inputs.get("motor_efficiency") or 1.0
+            shaft_power = None
+            curve_head = None
+            curve_warning = None
+            curve_points = inputs.get("curve_points") or []
+
+            if mode == "2":
+                if curve_points:
+                    try:
+                        curve_head = interpolate_curve(curve_points, inputs["flow"], "head_m")
+                        curve_eta = interpolate_curve(curve_points, inputs["flow"], "pump_efficiency")
+                        shaft_power = interpolate_curve(curve_points, inputs["flow"], "shaft_power_kw")
+                        if curve_head is None:
+                            curve_warning = (
+                                "Operating flow is outside the entered pump-curve range; "
+                                "no extrapolation was made. Ideal/system power is still reported."
+                            )
+                        if curve_eta is not None:
+                            pump_efficiency = curve_eta
+                        elif shaft_power is not None:
+                            hydraulic_kw = (
+                                fluid.density_kg_m3 * 9.80665 * (inputs["flow"] / 3600.0)
+                                * result["total_tdh_m"] / 1000.0
+                            )
+                            derived_eta = hydraulic_kw / shaft_power
+                            if 0 < derived_eta <= 1:
+                                pump_efficiency = derived_eta
+                            else:
+                                curve_warning = (
+                                    (curve_warning + " ") if curve_warning else ""
+                                ) + "Efficiency derived from shaft power is outside 0-100%; stored/default efficiency retained."
                         else:
-                            curve_warning = (curve_warning + " " if curve_warning else "") + "Derived efficiency is outside 0-100%; stored efficiency retained."
+                            curve_warning = (
+                                (curve_warning + " ") if curve_warning else ""
+                            ) + "No efficiency or shaft-power curve was available at this flow; 100% idealized pump efficiency used."
+                    except (KeyError, TypeError, ValueError) as exc:
+                        curve_warning = (
+                            f"Pump-curve data could not be interpolated ({exc}); "
+                            "ideal/system power is still reported."
+                        )
+                        shaft_power = None
+                        pump_efficiency = inputs.get("pump_efficiency") or 1.0
+                else:
+                    curve_warning = (
+                        "Pump-curve mode selected, but no curve points are stored; "
+                        "ideal/system power is still reported using default efficiencies."
+                    )
+                    pump_efficiency = 1.0
+                    motor_efficiency = 1.0
+            try:
                 power_result = calculate_power(
                     flow_m3_h=inputs["flow"], required_tdh_m=result["total_tdh_m"],
                     density_kg_m3=fluid.density_kg_m3,
                     pump_efficiency=pump_efficiency,
-                    motor_efficiency=inputs["motor_efficiency"],
+                    motor_efficiency=motor_efficiency,
                     shaft_power_kw=shaft_power)
                 power_result["curve_head_m"] = curve_head
                 power_result["curve_head_margin_m"] = (
                     curve_head - result["total_tdh_m"] if curve_head is not None else None)
                 power_result["curve_warning"] = curve_warning
-                power_result["efficiency_source"] = inputs.get("power_method_label", "configured power inputs")
+                power_result["efficiency_source"] = inputs.get(
+                    "power_method_label", "100% idealized default")
+                # Persist the latest derived diagnostics for INPUT REVIEW.
+                inputs["pump_efficiency"] = pump_efficiency
+                inputs["motor_efficiency"] = motor_efficiency
+                inputs["shaft_power_kw"] = shaft_power
+                inputs["curve_head_m"] = curve_head
+                inputs["curve_warning"] = curve_warning
             except ValueError as exc:
                 print(f"Power calculation error: {exc}")
-        else:
-            power_result = collect_power_results(
-                inputs["flow"], result["total_tdh_m"], fluid.density_kg_m3)
-            if power_result is not None:
-                inputs["power_mode"] = power_result["_input_mode"]
-                inputs["power_method_label"] = power_result["efficiency_source"]
-                inputs["pump_efficiency"] = power_result["pump_efficiency"]
-                inputs["motor_efficiency"] = power_result["motor_efficiency"]
-                inputs["shaft_power_kw"] = power_result["_shaft_power_input_kw"]
-                inputs["curve_head_m"] = power_result["curve_head_m"]
-                inputs["curve_warning"] = power_result["curve_warning"]
-                inputs["curve_points"] = power_result["_curve_points"]
-
+                # Last-resort fallback: report ideal hydraulic/electrical power.
+                try:
+                    power_result = calculate_power(
+                        flow_m3_h=inputs["flow"], required_tdh_m=result["total_tdh_m"],
+                        density_kg_m3=fluid.density_kg_m3,
+                        pump_efficiency=1.0, motor_efficiency=1.0)
+                    power_result["curve_head_m"] = curve_head
+                    power_result["curve_head_margin_m"] = None
+                    power_result["curve_warning"] = (
+                        f"Curve/efficiency inputs were invalid ({exc}); idealized power shown."
+                    )
+                    power_result["efficiency_source"] = "100% idealized fallback"
+                except ValueError as fallback_exc:
+                    print(f"Fallback power calculation error: {fallback_exc}")
     print("\n" + "=" * 68)
     print("FLUID PROPERTY ESTIMATES")
     print(f"EC (temperature-compensated to 25 °C) : {fluid.ec_ms_cm:.3f} mS/cm")
