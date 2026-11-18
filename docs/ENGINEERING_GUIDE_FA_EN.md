@@ -99,3 +99,21 @@ Single steady-state flow path and one reference diameter for fitting losses. No 
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+## 14. Suitable applications and decision boundary | موارد کاربرد و مرز استفاده
+**EN:** This calculator is suitable when the system can be represented as one defined flow path with one flow rate and one representative pipe diameter. Typical cases include transfer between two tanks, a single pump discharge route, or a process line where elevation, boundary pressure, pipe friction, fittings and equipment pressure drops can be stated explicitly.
+
+**FA:** این محاسبه‌گر زمانی مناسب است که سیستم را بتوان به‌صورت یک مسیر جریان مشخص با یک دبی و یک قطر مرجع نمایش داد. نمونه‌ها شامل انتقال بین دو مخزن، مسیر خروجی یک پمپ یا خط فرایندی است که اختلاف ارتفاع، فشار مرزی، افت لوله، اتصالات و افت تجهیزات آن مشخص باشند.
+
+**Example | مثال:** A pump transfers 50 m³/h from an open source tank to a destination 25 m higher. The line has one representative ID, known length and fittings; the filter differential pressure at 50 m³/h is available from measurement. The calculator combines +25 m static head, pipe/fitting losses and the filter pressure-drop head to estimate TDH. If pump and motor efficiencies are 78% and 92%, power can then be estimated at that duty point.
+
+**FA:** برای مثال، پمپ ۵۰ مترمکعب بر ساعت آب را از مخزن باز به مخزنی با تراز ۲۵ متر بالاتر منتقل می‌کند. خط دارای یک قطر مرجع، طول و اتصالات معلوم است و افت فشار فیلتر در دبی ۵۰ مترمکعب بر ساعت از اندازه‌گیری موجود است. برنامه هد استاتیکی ۲۵ متر، افت لوله و اتصالات و هد معادل افت فشار فیلتر را ترکیب و TDH را تخمین می‌زند. سپس با راندمان پمپ ۷۸٪ و موتور ۹۲٪ می‌توان توان را در همان نقطه کاری برآورد کرد.
+
+**When the single-path assumption is not adequate | چه زمانی فرض تک‌مسیره کافی نیست؟**
+- A line changes diameter: split the route into sections and calculate each section with its own ID and velocity. The current CLI does not assemble those sections automatically. | قطر خط تغییر می‌کند: مسیر را به بخش‌ها تقسیم و هر بخش را با ID و سرعت خودش محاسبه کنید؛ CLI فعلی این بخش‌ها را خودکار به هم متصل نمی‌کند.
+- A tee divides flow or parallel branches carry different flows: use a network model or calculate branches with a method that enforces continuity and energy balance. | سه‌راهی دبی را تقسیم می‌کند یا شاخه‌های موازی دبی متفاوت دارند: از مدل شبکه یا روشی با رعایت پیوستگی و تعادل انرژی استفاده کنید.
+- Fittings are on different diameters: do not add all K values against one common velocity; group them by the appropriate local diameter and calculate separately. | اتصالات روی قطرهای مختلف‌اند: همه Kها را با یک سرعت مشترک جمع نکنید؛ آن‌ها را بر اساس قطر محلی گروه‌بندی و جداگانه محاسبه کنید.
+- The actual operating point is required: construct the system curve and find its intersection with the manufacturer's pump curve. | نقطه کار واقعی لازم است: منحنی سیستم را بسازید و تقاطع آن را با منحنی سازنده پمپ پیدا کنید.
+- Pump selection or safe operation is critical: verify NPSH available/required, cavitation, motor loading, start-up, VFD and surge/water-hammer requirements separately. | انتخاب پمپ یا ایمنی بهره‌برداری حساس است: NPSH موجود/موردنیاز، کاویتاسیون، بار موتور، راه‌اندازی، VFD و ضربه قوچ را جداگانه کنترل کنید.
+
+The program's reported electrical input power is an estimate at the entered duty point. If 100% efficiency was assumed, it is only the ideal hydraulic lower bound. It is not a motor nameplate recommendation or an energy-consumption guarantee.
