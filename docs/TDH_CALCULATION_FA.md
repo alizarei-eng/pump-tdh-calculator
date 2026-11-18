@@ -18,11 +18,8 @@
 ### منحنی پمپ
 ۲ تا ۳۰ نقطه وارد می‌شود. دبی و هد الزامی و راندمان پمپ و توان محور اختیاری‌اند. درون‌یابی خطی فقط در محدوده دبی‌های واردشده انجام می‌شود و برون‌یابی وجود ندارد. مقایسه هد پمپ و TDH به‌تنهایی نقطه کار واقعی نیست؛ نقطه کار از تقاطع منحنی پمپ و منحنی سیستم به دست می‌آید.
 
-### کاربردها
-انتقال بین مخازن، مسیر منفرد پمپ و تخمین TDH با داشتن ارتفاع، فشار مرزی، مشخصات لوله و افت تجهیزات.
-
-### محدودیت‌ها
-چند قطر و چند مسیر به‌صورت خودکار مدل نمی‌شوند. شبکه شاخه‌دار، تقسیم دبی، NPSH، کاویتاسیون، ضربه قوچ و تحلیل گذرا پشتیبانی نمی‌شوند.
+### کاربردها و محدودیت‌ها
+برای انتقال بین مخازن و مسیر منفرد پمپ مناسب است. چند قطر و چند مسیر خودکار مدل نمی‌شوند. شبکه شاخه‌دار، تقسیم دبی، NPSH، کاویتاسیون، ضربه قوچ و تحلیل گذرا پشتیبانی نمی‌شوند.
 
 ## English Section
 
@@ -42,8 +39,5 @@ K coefficients are approximate and use the reference-diameter velocity. Equipmen
 ### Pump curve
 Enter 2–30 points. Flow and head are required; pump efficiency and shaft power are optional. Linear interpolation is limited to the entered flow range, with no extrapolation. Comparing pump head with TDH alone does not determine the actual duty point; that requires the intersection of pump and system curves.
 
-### Suitable applications
-Tank-to-tank transfer, a single pump route and TDH estimation when elevation, boundary pressure, pipe data and equipment losses are known.
-
-### Limitations
-Multiple diameters and multiple paths are not modelled automatically. Branched networks, flow distribution, NPSH, cavitation, water hammer and transient analysis are not supported.
+### Applications and limitations
+Suitable for tank-to-tank transfer and a single pump route. Multiple diameters and paths are not assembled automatically. Branched networks, flow distribution, NPSH, cavitation, water hammer and transient analysis are not supported.
