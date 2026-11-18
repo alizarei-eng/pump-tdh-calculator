@@ -82,3 +82,30 @@ Single steady flow path, one reference pipe diameter for fitting K calculations,
 محاسبه تک‌مسیره و پایاست؛ برای K فیتینگ‌ها یک قطر مرجع استفاده می‌شود؛ خواص EC و زبری تقریبی/مرجع‌اند. شبکه شاخه‌دار، پمپ‌های سری/موازی، تقاطع خودکار منحنی‌ها، NPSH، تلفات VFD و ضربه قوچ در نسخه فعلی وجود ندارند. افت تجهیزات باید در دبی مربوطه از اندازه‌گیری یا سازنده گرفته شود.
 
 See [the bilingual engineering guide](docs/ENGINEERING_GUIDE_FA_EN.md) and the detailed topic guides in `docs/`.
+
+## Suitable applications | موارد کاربرد مناسب
+- **EN:** Preliminary or operational TDH estimation for one defined, steady-state flow path between two system boundaries.
+- **FA:** تخمین اولیه یا عملیاتی TDH برای یک مسیر جریان پایا و مشخص بین دو مرز سیستم.
+- **EN:** Systems where one representative pipe diameter and one flow rate can reasonably represent the pipe route used in the calculation.
+- **FA:** سیستم‌هایی که یک قطر مرجع و یک دبی بتواند مسیر لوله مورد محاسبه را به‌طور معقول نمایندگی کند.
+- **EN:** Adding static elevation, boundary pressure and velocity-head differences, straight-pipe friction, fitting K losses and measured/manufacturer equipment pressure drops.
+- **FA:** ترکیب اختلاف ارتفاع، فشار و هد سرعت مرزی، افت طولی، افت K اتصالات و افت فشار واقعی/سازنده تجهیزات.
+- **EN:** Estimating hydraulic, shaft and motor electrical input power at the calculated duty point when credible efficiencies or manufacturer curve data are available.
+- **FA:** تخمین توان هیدرولیکی، توان محور و توان برق ورودی موتور در نقطه محاسباتی، در صورت وجود راندمان معتبر یا داده منحنی سازنده.
+
+## Engineering scope and limitations | محدوده مهندسی و محدودیت‌ها
+**What one calculation represents | مفهوم یک محاسبه**
+- One steady flow rate and one reference pipe internal diameter for the pipe-friction and fitting-loss calculation. | یک دبی پایا و یک قطر داخلی مرجع برای افت طولی و افت اتصالات.
+- Fitting K values are all evaluated using the reference pipe velocity. | تمام ضرایب K با سرعت لوله مرجع محاسبه می‌شوند.
+- Equipment pressure drops are entered as measured or manufacturer differential pressure at the relevant flow; the selected equipment values are added. | افت فشار تجهیزات به‌صورت اختلاف فشار اندازه‌گیری‌شده یا سازنده در دبی مربوط وارد و با هم جمع می‌شود.
+- Boundary pressures and velocities must describe the actual start and end sections of the system. | فشارها و سرعت‌های مرزی باید مقاطع واقعی ابتدا و انتهای سیستم را توصیف کنند.
+
+**Not covered by this tool | موارد خارج از محدوده**
+- No automatic solution for multiple pipe diameters/segments, branched networks, parallel paths or flow distribution. | حل خودکار چند قطر/بخش لوله، شبکه شاخه‌دار، مسیرهای موازی یا توزیع دبی وجود ندارد.
+- No multiple-pump series/parallel system solver or automatic pump-curve/system-curve intersection. | حل پمپ‌های سری/موازی یا تقاطع خودکار منحنی پمپ و سیستم وجود ندارد.
+- Pump-curve data are linearly interpolated only within the entered flow range; no extrapolation or full operating-point solution is performed. | داده منحنی پمپ فقط در محدوده دبی واردشده درون‌یابی خطی می‌شوند؛ برون‌یابی یا حل کامل نقطه کار انجام نمی‌شود.
+- No NPSH, cavitation margin, water hammer, transient, VFD-loss or motor-starting analysis. | تحلیل NPSH، حاشیه کاویتاسیون، ضربه قوچ، گذرا، تلفات VFD یا راه‌اندازی موتور وجود ندارد.
+- EC-based density/viscosity and reference roughness are estimates; equipment pressure drop must match the operating flow and condition. | چگالی/ویسکوزیته مبتنی بر EC و زبری مرجع تخمینی‌اند؛ افت فشار تجهیز باید با دبی و وضعیت کاری منطبق باشد.
+- A 100% efficiency default is an idealized theoretical lower bound, not actual pump or motor performance. | راندمان پیش‌فرض ۱۰۰٪ فرض ایده‌آل و حد پایین نظری است، نه عملکرد واقعی پمپ یا موتور.
+
+**Practical rule | قاعده عملی:** Use this tool for a single-path TDH estimate and preliminary power check. For a route with changing diameters, calculate each segment and fitting group at its own diameter/velocity before assembling the energy balance, or use a network-capable model. For final pump selection, solve the pump/system operating point and verify NPSH, motor loading and transient conditions separately.
