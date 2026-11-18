@@ -103,7 +103,7 @@ def collect_equipment_drop(equipment):
 
 def collect_pipe():
     print("\nGROUP: PIPE DATA")
-    materials = get_materials()
+    materials = [item for item in get_materials() if item['roughness_mm'] is not None]
     material = choose_from_list("Available pipe materials (roughness is loaded automatically):",
                                 materials, lambda x: x["name"])
     if material["name"] == "HDPE":
@@ -125,11 +125,7 @@ def collect_pipe():
         wall = read_number("Nominal wall thickness (mm): ", minimum=0.000001)
         internal_diameter = calculate_non_pe_geometry(od, wall)
         print(f"Calculated nominal ID: {internal_diameter:.2f} mm")
-    if material["roughness_mm"] is None:
-        roughness = read_number("Absolute roughness (mm) [manual material selected]: ")
-        roughness_label = "User-defined"
-    else:
-        roughness, _, roughness_label = get_material_roughness(material["id"])
+    roughness, _, roughness_label = get_material_roughness(material["id"])
     print(f"Auto-loaded roughness : {roughness:g} mm ({roughness_label})")
     flow = read_number("Flow rate (m³/h): ", minimum=0.000001)
     length = read_number("Total straight pipe length (m): ")
