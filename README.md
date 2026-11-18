@@ -1,26 +1,178 @@
 # Pump TDH Calculator
 
-Python CLI for estimating fluid properties and calculating the required pump Total Dynamic Head (TDH) for a single steady-state flow path.
+ابزار خط فرمان (CLI) با Python برای برآورد خواص سیال و محاسبه هد کل موردنیاز پمپ (Total Dynamic Head یا TDH) در یک مسیر جریان پایا.
 
-## Implemented
-- EC-based screening estimates for TDS, density and viscosity. EC is entered as a value temperature-compensated to 25 °C; operating water temperature is a separate input.
-- PE pipe selection by material grade (PE80/PE100), SDR and outside diameter (OD), with nominal wall thickness and internal diameter loaded from the copied ISO 4427 reference catalogue.
-- Automatic absolute roughness lookup by pipe material. Values are indicative engineering defaults; the user does not enter roughness for listed materials.
-- Static head using either direct Δz or start/end elevations.
-- Darcy–Weisbach major pipe loss, K-based fitting/valve losses, equipment differential-pressure losses and boundary pressure/velocity head differences.
-- Component-by-component TDH report.
-- Hydraulic, pump-shaft and motor electrical power estimates. Users can enter pump/motor efficiencies manually, leave them blank for an explicitly labeled 100% idealized default, or enter pump-curve points interactively (flow and head required; efficiency and shaft power optional).
-- Linear interpolation between entered pump-curve points without extrapolation; pump-curve head is compared with system TDH at the requested flow, but the true pump/system operating point is not solved.
+## این برنامه چه کاری انجام می‌دهد؟
 
-## Run
-```bash
+برنامه اطلاعات را مرحله‌به‌مرحله از کاربر می‌گیرد و در پایان افت‌ها و هد کل سیستم را محاسبه می‌کند. در صورت درخواست کاربر، توان هیدرولیکی، توان محور پمپ و توان الکتریکی ورودی موتور را نیز محاسبه و گزارش می‌کند.
+
+قابلیت‌های فعلی:
+- تخمین غربالگری TDS، چگالی و ویسکوزیته از EC. مقدار EC باید از قبل به دمای مرجع ۲۵°C جبران شده باشد؛ دمای واقعی کارکرد آب جداگانه دریافت می‌شود.
+- انتخاب لوله HDPE بر اساس گرید PE80/PE100، مقدار SDR و قطر خارجی OD؛ ضخامت دیواره و قطر داخلی اسمی از بانک ابعادی خوانده/محاسبه می‌شوند.
+- بارگذاری خودکار زبری مطلق بر اساس جنس لوله.
+- محاسبه هد استاتیکی با ورود مستقیم اختلاف ارتفاع یا تراز ابتدا و انتها.
+- محاسبه افت طولی با Darcy–Weisbach، افت موضعی فیتینگ‌ها و شیرها با ضرایب K، افت تجهیزات از اختلاف فشار و اختلاف هد فشار/سرعت در مرزهای سیستم.
+- گزارش جزءبه‌جزء افت‌ها و TDH.
+- محاسبه توان هیدرولیکی، توان محور و توان الکتریکی ورودی موتور.
+- سه روش تعیین راندمان: ورود دستی راندمان پمپ و موتور، ورود مرحله‌ای نقاط منحنی پمپ، یا استفاده از راندمان پیش‌فرض ۱۰۰٪.
+- درون‌یابی خطی منحنی پمپ بین نقاط واردشده بدون برون‌یابی؛ مقایسه هد پمپ با TDH سیستم در دبی موردنیاز.
+
+## نصب و اجرا
+
+۱. مخزن را از GitHub دریافت یا Clone کنید.
+۲. ترمینال را در پوشه اصلی پروژه باز کنید؛ همان پوشه‌ای که فایل main.py در آن قرار دارد.
+۳. برنامه را اجرا کنید:
+
+\`\`\`bash
 python main.py
-python -m unittest discover -s tests -v
-```
+\`\`\`
 
-## Data provenance and engineering limitations
-- `databases/pipe_standards.json` is copied from `hdpe-pipe-diameter-selector`; catalogue entries include both directly transcribed and ratio-derived wall-thickness records. Verify ratio-derived dimensions against a controlled standard/manufacturer catalogue before design release.
-- `databases/pipe_materials.json` is copied from `pipe-pressure-loss-calculator`. Roughness values are indicative, not guaranteed manufacturer values.
-- For non-HDPE materials the CLI asks OD and nominal wall thickness because SDR is not a universal designation for those materials. Their roughness is loaded automatically.
-- This version models one steady-state flow path with one reference pipe diameter. Fitting K values are approximate; equipment losses require measured/manufacturer ΔP. EC-derived density and viscosity are screening estimates, particularly unsuitable as final properties for concentrated brine without validation.
-- Not yet included: branched/multi-diameter networks, automatic pump/system-curve intersection and pump selection, NPSH and transient surge/water hammer. The entered pump curve is currently used for interpolation and head comparison at the system flow, not for solving the operating point.
+در بعضی سیستم‌ها باید از دستور python3 main.py استفاده کنید.
+
+برای اجرای آزمون‌های برنامه:
+
+\`\`\`bash
+python -m unittest discover -s tests -v
+\`\`\`
+
+## راهنمای استفاده از ابتدا تا انتها
+
+برنامه تعاملی است؛ یعنی هر بار یک سؤال نمایش می‌دهد و کاربر پاسخ همان سؤال را وارد می‌کند. لازم نیست همه اطلاعات را یک‌جا وارد کنید.
+
+### مرحله ۱ ـ مشخصات سیال
+- EC جبران‌شده تا ۲۵ درجه سانتی‌گراد را بر حسب mS/cm وارد کنید.
+- نوع پروفایل آب را انتخاب کنید: آب عمومی/زیرزمینی/لب‌شور یا پروفایل غربالگری آب دریای طبیعی.
+- دمای واقعی کارکرد آب را بر حسب °C وارد کنید.
+
+**دقت کنید:** EC و دمای عملیاتی دو ورودی مستقل هستند. برنامه فرض می‌کند EC از قبل به ۲۵°C جبران شده است و آن را دوباره جبران نمی‌کند.
+
+### مرحله ۲ ـ هد استاتیکی
+یکی از دو روش را انتخاب کنید:
+- ورود مستقیم اختلاف ارتفاع Δz؛ مقدار مثبت یعنی مقصد بالاتر و مقدار منفی یعنی مقصد پایین‌تر است.
+- ورود تراز ابتدا و انتهای مسیر با یک مبنای ارتفاعی مشترک.
+
+### مرحله ۳ ـ مشخصات لوله
+جنس لوله را از فهرست انتخاب کنید.
+
+برای HDPE:
+1. گرید PE80 یا PE100 را انتخاب کنید.
+2. SDR را انتخاب کنید.
+3. قطر خارجی OD را از فهرست انتخاب کنید.
+4. برنامه ضخامت اسمی دیواره و قطر داخلی اسمی را از بانک ابعادی به دست می‌آورد.
+
+برای سایر مواد، OD و ضخامت اسمی دیواره را وارد کنید تا قطر داخلی محاسبه شود. زبری برای مواد فهرست‌شده به‌صورت خودکار بارگذاری می‌شود.
+
+سپس دبی را بر حسب m³/h و طول مستقیم لوله را بر حسب متر وارد کنید.
+
+### مرحله ۴ ـ فیتینگ‌ها و شیرها
+فهرست فیتینگ‌ها با شماره نمایش داده می‌شود. شماره قطعه را وارد کنید، سپس تعداد آن را مشخص کنید. برای پایان دادن به این بخش عدد صفر را وارد کنید. برنامه مجموع ضرایب K را محاسبه می‌کند.
+
+### مرحله ۵ ـ تجهیزات
+برای هر تجهیز، افت فشار واقعی یا مقدار اعلام‌شده سازنده را بر حسب bar وارد کنید. این مقدار باید مربوط به دبی کاری مورد بررسی باشد. برای پایان دادن به فهرست عدد صفر را وارد کنید.
+
+### مرحله ۶ ـ شرایط ابتدا و انتهای سیستم
+- فشار گیج ابتدا و انتها را بر حسب kPa وارد کنید.
+- اگر هر دو نقطه سطح آزاد مخازن باز به اتمسفر هستند، برای هر دو فشار صفر وارد کنید.
+- برای دو سطح آزاد بزرگ مخزن، سرعت مرزی را صفر در نظر بگیرید. اگر سرعت مرزی مشخصی لازم است، گزینه ورود سرعت را انتخاب و مقدار آن را بر حسب m/s وارد کنید.
+
+### مرحله ۷ ـ مشاهده TDH
+برنامه سرعت داخل لوله، عدد رینولدز، رژیم جریان، ضریب اصطکاک Darcy و مؤلفه‌های هد را گزارش می‌کند:
+- هد استاتیکی
+- اختلاف هد فشار
+- اختلاف هد سرعت
+- افت طولی لوله
+- افت فیتینگ‌ها و شیرها
+- افت تجهیزات
+- **TDH موردنیاز سیستم**
+
+### مرحله ۸ ـ محاسبه توان
+اگر TDH منفی نباشد، برنامه می‌پرسد آیا محاسبه توان انجام شود یا خیر. با وارد کردن y وارد بخش توان می‌شوید.
+
+سه روش در دسترس است:
+
+**روش ۱ ـ راندمان دستی**
+
+راندمان پمپ و سپس راندمان موتور را بر حسب درصد وارد کنید. اگر اطلاعاتی ندارید، ورودی را خالی بگذارید تا مقدار ۱۰۰٪ فرض شود.
+
+**روش ۲ ـ ورود مرحله‌ای منحنی پمپ**
+
+ابتدا تعداد نقاط منحنی (۲ تا ۳۰) را وارد کنید. سپس برای هر نقطه به‌ترتیب دبی (m³/h) و هد (m) را وارد کنید. راندمان پمپ (%) و توان محور (kW) اختیاری هستند و در صورت نداشتن اطلاعات می‌توان آن‌ها را خالی گذاشت. در پایان، راندمان موتور را وارد کنید یا در صورت نداشتن اطلاعات Enter بزنید.
+
+دبی نقاط نباید تکراری باشد. برنامه نقاط را بر اساس دبی مرتب و فقط در محدوده داده‌ها درون‌یابی می‌کند؛ برون‌یابی انجام نمی‌شود.
+
+**روش ۳ ـ راندمان پیش‌فرض**
+
+برنامه راندمان پمپ و موتور را ۱۰۰٪ در نظر می‌گیرد. این یک فرض ایده‌آل برای نشان دادن حداقل توان نظری است، نه تخمین مصرف واقعی.
+
+### مرحله ۹ ـ تفسیر توان نهایی
+
+در گزارش توان، سه مقدار را از هم جدا می‌بینید:
+- **Hydraulic Power:** توان منتقل‌شده به سیال بر اساس دبی و TDH سیستم.
+- **Pump Shaft Power:** توان مکانیکی لازم روی محور پمپ.
+- **Electrical Input Power:** توان الکتریکی تخمینی ورودی موتور.
+
+در انتهای گزارش، مقدار **FINAL REQUIRED ELECTRICAL POWER** نیز نمایش داده می‌شود. این همان توان الکتریکی نهایی محاسبه‌شده برای یک موتور پمپ است و از رابطه زیر به دست می‌آید:
+
+\[
+P_{electric}=P_{shaft}/\eta_{motor}
+\]
+
+اگر توان محور از منحنی سازنده درون‌یابی شده باشد، از آن مقدار استفاده می‌شود؛ در غیر این صورت توان محور از توان هیدرولیکی و راندمان پمپ محاسبه می‌شود.
+
+## مثال عددی از ابتدا تا انتهای بخش توان
+
+فرض کنید مراحل هیدرولیکی برنامه برای یک سیستم آب، این نتایج را داده‌اند:
+
+| ورودی/نتیجه | مقدار نمونه |
+|---|---:|
+| دبی سیستم | 50 m³/h |
+| TDH محاسبه‌شده | 40 m |
+| چگالی تخمینی سیال | 1000 kg/m³ |
+| راندمان پمپ | 78% |
+| راندمان موتور | 92% |
+
+توان هیدرولیکی:
+
+\[
+P_h=\frac{1000\times9.80665\times(50/3600)\times40}{1000}
+\approx5.45\ kW
+\]
+
+توان محور پمپ:
+
+\[
+P_{shaft}=5.45/0.78\approx6.99\ kW
+\]
+
+توان الکتریکی نهایی:
+
+\[
+P_{electric}=6.99/0.92\approx7.60\ kW
+\]
+
+خروجی مورد انتظار با این داده‌های نمونه:
+
+| نوع توان | مقدار تقریبی |
+|---|---:|
+| Hydraulic Power | 5.45 kW |
+| Pump Shaft Power | 6.99 kW |
+| Electrical Input Power | 7.60 kW |
+| **FINAL REQUIRED ELECTRICAL POWER** | **7.60 kW** |
+
+این عدد توان الکتریکی محاسباتی در نقطه مورد بررسی است؛ به‌تنهایی به معنی انتخاب قطعی موتور ۷.۶ کیلووات نیست. انتخاب توان نامی موتور باید با منحنی سازنده، توان محور در کل محدوده کاری، شرایط راه‌اندازی، ضریب سرویس و توصیه سازنده کنترل شود. این محاسبه تلفات VFD را جداگانه لحاظ نمی‌کند.
+
+## راهنمای آموزشی تکمیلی
+
+برای دستورالعمل دقیق و مرحله‌به‌مرحله ورود نقاط منحنی پمپ، محدودیت‌های درون‌یابی و تفسیر خروجی، فایل زیر را ببینید:
+
+- [آموزش مرحله‌به‌مرحله محاسبه توان پمپ و موتور](docs/POWER_CALCULATION_STEP_BY_STEP_FA.md)
+
+## منشأ داده‌ها و محدودیت‌های مهندسی
+
+- databases/pipe_standards.json از مخزن hdpe-pipe-diameter-selector کپی شده است. بعضی ضخامت‌های دیواره مستقیماً از داده ابعادی و بعضی نسبت‌محور/محاسبه‌ای هستند؛ پیش از طراحی نهایی، ابعاد را با استاندارد کنترل‌شده یا کاتالوگ سازنده تطبیق دهید.
+- databases/pipe_materials.json از مخزن pipe-pressure-loss-calculator کپی شده است. زبری‌ها مقادیر مرجع و تقریبی‌اند، نه تضمین سازنده.
+- برای مواد غیراز HDPE، برنامه OD و ضخامت دیواره را می‌گیرد؛ SDR شناسه عمومی همه مواد لوله نیست.
+- مدل فعلی یک مسیر جریان پایا و یک قطر مرجع دارد. K فیتینگ‌ها تقریبی‌اند و افت تجهیزات باید از اختلاف فشار واقعی/سازنده دریافت شود.
+- خواص سیال حاصل از EC تخمینی‌اند؛ برای شورابه غلیظ، طراحی نهایی باید بر پایه آزمایش یا مدل خواص معتبر انجام شود.
+- منحنی پمپ فعلاً برای درون‌یابی در دبی موردنیاز و مقایسه هد با TDH استفاده می‌شود؛ نقطه کار واقعی از تقاطع منحنی پمپ و منحنی سیستم هنوز به‌صورت خودکار حل نمی‌شود.
+- شبکه شاخه‌دار و چندقطری، انتخاب خودکار پمپ، NPSH و تحلیل گذرا/ضربه قوچ هنوز در این نسخه پیاده‌سازی نشده‌اند.
