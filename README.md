@@ -7,7 +7,7 @@ Python engineering project for estimating fluid properties and calculating pump 
 - Temperature-dependent freshwater base properties (0–100 °C) with approximate salinity corrections.
 - Optional natural-seawater ionic-ratio profile for screening estimates.
 - User-visible warnings where EC cannot identify ionic composition.
-- Next modules: pipe geometry, Darcy-Weisbach losses, fittings/equipment losses, elevation profile and TDH.
+- Elevation difference and static-head calculation (two input methods).\n- Next modules: pipe geometry, Darcy-Weisbach losses, fittings/equipment losses and complete TDH integration.
 
 ## Run
 ```bash
@@ -21,3 +21,4 @@ EC does not uniquely determine sodium, calcium, magnesium, iron, chloride, sulfa
 TDS is estimated as EC(µS/cm) × factor. The default factor 0.65 is not universal. EC must be temperature-compensated to 25 °C. Density and viscosity corrections are approximate screening correlations, not a validated electrolyte equation of state. At high EC/concentrated brine, use measured or validated properties. Iron is not inferred; lime is not an ion. Calcium hardness and bicarbonate alkalinity are shown as CaCO3 equivalents only under the seawater-profile assumption.
 
 The project does not yet calculate TDH. Pump selection will also require the system curve, pump curve, efficiency, NPSH and transient checks.
+\n## Elevation / static head\n\nThe CLI includes Group 4 for direct elevation difference or start/end elevations. See `docs/ELEVATION_STATIC_HEAD_FA.md`. Static head is one term of the pump energy equation, not the complete TDH.\n
