@@ -346,17 +346,36 @@ def calculate_and_print(inputs):
         mode = inputs.get("power_mode")
         if mode in ("1", "2", "3"):
             try:
+                pump_efficiency = inputs["pump_efficiency"]
+                shaft_power = None
+                curve_head = None
+                curve_warning = None
+                if mode == "2":
+                    curve_points = inputs.get("curve_points", [])
+                    curve_head = interpolate_curve(curve_points, inputs["flow"], "head_m")
+                    curve_eta = interpolate_curve(curve_points, inputs["flow"], "pump_efficiency")
+                    shaft_power = interpolate_curve(curve_points, inputs["flow"], "shaft_power_kw")
+                    if curve_head is None:
+                        curve_warning = "Required flow is outside the entered pump-curve range. No extrapolation was made."
+                    if curve_eta is not None:
+                        pump_efficiency = curve_eta
+                    elif shaft_power is not None:
+                        hydraulic_kw = fluid.density_kg_m3 * 9.80665 * (inputs["flow"] / 3600.0) * result["total_tdh_m"] / 1000.0
+                        derived_eta = hydraulic_kw / shaft_power
+                        if 0 < derived_eta <= 1:
+                            pump_efficiency = derived_eta
+                        else:
+                            curve_warning = (curve_warning + " " if curve_warning else "") + "Derived efficiency is outside 0-100%; stored efficiency retained."
                 power_result = calculate_power(
                     flow_m3_h=inputs["flow"], required_tdh_m=result["total_tdh_m"],
                     density_kg_m3=fluid.density_kg_m3,
-                    pump_efficiency=inputs["pump_efficiency"],
+                    pump_efficiency=pump_efficiency,
                     motor_efficiency=inputs["motor_efficiency"],
-                    shaft_power_kw=inputs.get("shaft_power_kw") if mode == "2" else None)
-                power_result["curve_head_m"] = inputs.get("curve_head_m")
+                    shaft_power_kw=shaft_power)
+                power_result["curve_head_m"] = curve_head
                 power_result["curve_head_margin_m"] = (
-                    inputs["curve_head_m"] - result["total_tdh_m"]
-                    if inputs.get("curve_head_m") is not None else None)
-                power_result["curve_warning"] = inputs.get("curve_warning")
+                    curve_head - result["total_tdh_m"] if curve_head is not None else None)
+                power_result["curve_warning"] = curve_warning
                 power_result["efficiency_source"] = inputs.get("power_method_label", "configured power inputs")
             except ValueError as exc:
                 print(f"Power calculation error: {exc}")
