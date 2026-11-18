@@ -1,42 +1,36 @@
 import unittest
+from core.fluid_properties import estimate_from_ec
 
-from core.fluid_properties import get_fluid_properties
 
+class TestECFluidProperties(unittest.TestCase):
+    def test_tds_from_ec(self):
+        water = estimate_from_ec(10.0, 25.0, tds_factor=0.65)
+        self.assertAlmostEqual(water.tds_mg_l, 6500.0)
+        self.assertGreater(water.density_kg_m3, 997.0)
+        self.assertGreater(water.dynamic_viscosity_pa_s, 0.00089)
 
-class TestFluidProperties(unittest.TestCase):
-    def test_freshwater_at_20_c(self):
-        water = get_fluid_properties("freshwater", temperature_c=20)
-        self.assertAlmostEqual(water.density_kg_m3, 998.21, places=2)
-        self.assertAlmostEqual(water.dynamic_viscosity_pa_s, 1.002e-3, places=7)
+    def test_kinematic_viscosity_identity(self):
+        water = estimate_from_ec(2.0, 20.0)
         self.assertAlmostEqual(
             water.kinematic_viscosity_m2_s,
             water.dynamic_viscosity_pa_s / water.density_kg_m3,
         )
 
-    def test_freshwater_interpolation(self):
-        water = get_fluid_properties("freshwater", temperature_c=22.5)
-        self.assertGreater(water.density_kg_m3, 997.0)
-        self.assertLess(water.density_kg_m3, 998.3)
+    def test_generic_profile_does_not_invent_ions(self):
+        water = estimate_from_ec(3.0, 25.0)
+        self.assertIsNone(water.estimated_ions_mg_l)
 
-    def test_seawater_reference(self):
-        water = get_fluid_properties("seawater", temperature_c=25, salinity_g_kg=35)
-        self.assertAlmostEqual(water.density_kg_m3, 1023.3, places=1)
-        self.assertAlmostEqual(water.dynamic_viscosity_pa_s, 0.9591e-3, places=7)
+    def test_seawater_profile_reports_assumed_ions(self):
+        water = estimate_from_ec(53.0, 25.0, composition_profile="natural_seawater")
+        self.assertIn("sodium", water.estimated_ions_mg_l)
+        self.assertIn("calcium_hardness_as_CaCO3", water.estimated_ions_mg_l)
+        self.assertTrue(any("Iron is not estimated" in item for item in water.warnings))
 
-    def test_seawater_rejects_unsupported_conditions(self):
+    def test_rejects_invalid_values(self):
         with self.assertRaises(ValueError):
-            get_fluid_properties("seawater", temperature_c=20, salinity_g_kg=35)
-
-    def test_custom_properties(self):
-        fluid = get_fluid_properties(
-            "custom", temperature_c=30,
-            density_kg_m3=1000, dynamic_viscosity_pa_s=0.001
-        )
-        self.assertAlmostEqual(fluid.kinematic_viscosity_m2_s, 1e-6)
-
-    def test_invalid_custom_properties(self):
+            estimate_from_ec(-1.0)
         with self.assertRaises(ValueError):
-            get_fluid_properties("custom", density_kg_m3=1000)
+            estimate_from_ec(1.0, 110.0)
 
 
 if __name__ == "__main__":
