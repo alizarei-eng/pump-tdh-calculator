@@ -33,7 +33,7 @@ python -m unittest discover -s tests -v
 - روش ۳: فرض راندمان ۱۰۰٪ برای پمپ و موتور.
 - با فشردن Enter در انتخاب روش، روش ۳ به‌صورت پیش‌فرض اجرا می‌شود؛ بنابراین کاربر بدون داشتن اطلاعات پمپ نیز نتیجه اولیه توان را دریافت می‌کند.
 
-راندمان ۱۰۰٪ یک فرض ایده‌آل و حد پایین نظری توان است، نه راندمان واقعی تجهیز. توان برق واقعی معمولاً بیشتر است. اگر راندمان واقعی در دسترس باشد، ورود آن تخمین را به شرایط واقعی نزدیک‌تر می‌کند.
+راندمان ۱۰۰٪ یک فرض ایده‌آل و حد پایین نظری توان است، نه راندمان واقعی تجهیز. توان برق واقعی معمولاً بیشتر است. اگر راندمان واقعی در دسترس باشد، ورود آن تخمین را به شرایط واقعی نزدیک‌تر می‌کند. هر سه توان (هیدرولیکی، محور و برق ورودی) علاوه بر kW با معادل اسب بخار مکانیکی (hp) نیز نمایش داده می‌شوند؛ ضریب تبدیل ۱ kW = 1.34102209 hp است.
 
 ### مثال
 برای دبی ۵۰ m³/h، TDH برابر ۴۰ m، چگالی ۱۰۰۰ kg/m³، راندمان پمپ ۷۸٪ و موتور ۹۲٪، توان هیدرولیکی حدود ۵٫۴۵ kW، توان محور ۶٫۹۹ kW و توان برق ورودی ۷٫۶۰ kW است.
@@ -79,7 +79,7 @@ After displaying TDH, the application enters the power section automatically:
 - Method 3: assume 100% efficiency for both pump and motor.
 - Pressing Enter at the method prompt selects Method 3 by default, so an initial power estimate is produced even when pump data is unavailable.
 
-A 100% efficiency assumption is idealized and represents a theoretical lower bound, not actual equipment efficiency. Actual electrical input will normally be higher. Entering known efficiencies improves the estimate.
+A 100% efficiency assumption is idealized and represents a theoretical lower bound, not actual equipment efficiency. Actual electrical input will normally be higher. Entering known efficiencies improves the estimate. All three power values (hydraulic, shaft and electrical input) are displayed in both kW and mechanical horsepower (hp), using 1 kW = 1.34102209 hp.
 
 ### Worked example
 For a flow rate of 50 m³/h, TDH of 40 m, density of 1000 kg/m³, pump efficiency of 78% and motor efficiency of 92%, hydraulic power is approximately 5.45 kW, shaft power 6.99 kW and electrical input 7.60 kW.
