@@ -18,8 +18,7 @@ _FRESHWATER_TABLE = {
     80.0: (971.80, 0.355e-3), 100.0: (958.35, 0.282e-3),
 }
 
-# Approximate major-ion composition of standard natural seawater at S≈35.
-# Units: mg/L. Scaled proportionally only for an explicitly selected seawater profile.
+# Approximate standard natural-seawater composition at salinity about 35 g/kg.
 _SEAWATER_IONS_MG_L_AT_35 = {
     "chloride": 19354.0, "sodium": 10770.0, "sulfate": 2712.0,
     "magnesium": 1290.0, "calcium": 412.0, "potassium": 399.0,
@@ -84,11 +83,11 @@ def estimate_from_ec(
     composition_profile: str = "generic",
     ec_reference_temperature_c: float = 25.0,
 ) -> FluidProperties:
-    """Estimate water properties from EC (mS/cm).
+    """Estimate TDS, density and viscosity from temperature-compensated EC.
 
-    EC must be temperature-compensated to ec_reference_temperature_c
-    (normally 25 °C). TDS ≈ EC(µS/cm) × tds_factor.
-    Density/viscosity corrections are screening correlations, not a brine EOS.
+    EC must already be compensated to ec_reference_temperature_c (normally
+    25 °C). TDS ≈ EC(µS/cm) × tds_factor. Density and viscosity are approximate
+    screening correlations; concentrated brine needs validated properties.
     """
     vals = (ec_ms_cm, temperature_c, tds_factor, ec_reference_temperature_c)
     if any(not math.isfinite(float(v)) for v in vals):
@@ -102,45 +101,38 @@ def estimate_from_ec(
     if composition_profile not in {"generic", "natural_seawater"}:
         raise ValueError("composition_profile must be 'generic' or 'natural_seawater'.")
 
-    # EC in mS/cm × 1000 = µS/cm; TDS result is mg/L.
     tds_mg_l = ec_ms_cm * 1000.0 * tds_factor
     tds_g_l = tds_mg_l / 1000.0
     rho_water, mu_water = _freshwater_base(float(temperature_c))
 
-    # Approximate screening corrections; valid only for ordinary dilute/brackish
-    # water. Concentrated RO brine requires measured/validated properties.
+    # Engineering screening corrections, not a universal electrolyte model.
     density = rho_water + 0.70 * tds_g_l
     dynamic_viscosity = mu_water * (1.0 + 0.0022 * tds_g_l)
     kinematic_viscosity = dynamic_viscosity / density
 
     warnings = [
-        "EC-to-TDS factor depends on ionic composition; 0.65 is a default estimate, not a universal constant.",
+        "EC-to-TDS factor depends on ionic composition; 0.65 is a default estimate, not universal.",
         "Density and viscosity are approximate screening estimates, not a validated equation of state.",
         "EC must be temperature-compensated to the stated reference temperature (normally 25 °C).",
-        "Individual ions cannot be uniquely calculated from EC alone.",
+        "Individual ion concentrations cannot be uniquely calculated from EC alone.",
     ]
 
     ions = None
     estimate_level = "EC/TDS-based screening estimate"
     if composition_profile == "natural_seawater":
-        # Standard seawater composition ratios scaled by EC-derived TDS.
-        # TDS=35,000 mg/L is the nominal reference concentration.
         scale = tds_mg_l / 35000.0
         ions = {name: value * scale for name, value in _SEAWATER_IONS_MG_L_AT_35.items()}
+        ions["calcium_hardness_as_CaCO3"] = ions["calcium"] * 2.497
+        ions["bicarbonate_alkalinity_as_CaCO3"] = ions["bicarbonate"] * (50.0 / 61.0)
         estimate_level = "EC/TDS plus assumed natural-seawater ionic ratios"
-        warnings.append(
-            "Ion values assume standard natural seawater ratios. Do not use this profile for groundwater, "
-            "industrial water, or RO concentrate without laboratory confirmation."
-        )
-        warnings.append(
-            "Iron is not estimated: it is a trace/variable constituent and cannot be inferred from EC. "
-            "Lime is not a dissolved ion; calcium hardness and alkalinity require separate water analysis."
-        )
+        warnings.extend([
+            "Ion values assume standard natural seawater ratios; do not apply to groundwater or RO concentrate without laboratory confirmation.",
+            "Iron is not estimated because it is a trace/variable constituent and cannot be inferred from EC.",
+            "Lime is not a dissolved ion; calcium hardness and alkalinity are reported as CaCO3 equivalents only under the seawater-profile assumption.",
+        ])
 
     if ec_ms_cm > 70.0:
-        warnings.append(
-            "EC exceeds 70 mS/cm; concentrated brine behaviour may fall outside these screening correlations."
-        )
+        warnings.append("EC exceeds 70 mS/cm; concentrated-brine behaviour may fall outside these screening correlations.")
 
     return FluidProperties(
         fluid_type="water" if composition_profile == "generic" else "natural_seawater_profile",
