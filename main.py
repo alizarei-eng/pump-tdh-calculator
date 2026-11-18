@@ -1,5 +1,6 @@
 """Interactive CLI for fluid properties and complete steady-state pump TDH."""
 import json
+import math
 from pathlib import Path
 from core.fluid_properties import estimate_from_ec
 from core.elevation import calculate_static_head, calculate_static_head_from_difference
