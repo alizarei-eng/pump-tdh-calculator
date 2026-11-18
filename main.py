@@ -28,13 +28,11 @@ def main() -> None:
 
     ec = read_float("Electrical conductivity EC (mS/cm, compensated to 25 °C): ")
     temperature = read_float("Water temperature (°C) [25]: ", 25.0)
-    factor = read_float("TDS conversion factor [0.65]: ", 0.65)
 
     try:
         fluid = estimate_from_ec(
             ec_ms_cm=ec,
             temperature_c=temperature,
-            tds_factor=factor,
             composition_profile=profile,
             ec_reference_temperature_c=25.0,
         )
