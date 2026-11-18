@@ -58,7 +58,7 @@ def main() -> None:
     for warning in fluid.warnings:
         print(f"- {warning}")
 
-    print("\\nGROUP 4: ELEVATION / STATIC HEAD")
+    print("\nGROUP 4: ELEVATION / STATIC HEAD")
     print("Choose elevation input method:")
     print("  1) Enter elevation difference directly (destination - start)")
     print("  2) Enter start and destination elevations")
@@ -90,7 +90,7 @@ def main() -> None:
         delta_z = calculate_static_head(elevation_start_m=z1, elevation_end_m=z2)
         method_label = "Start/end elevations"
 
-    print("\\nSTATIC HEAD RESULT")
+    print("\nSTATIC HEAD RESULT")
     print(f"Input method       : {method_label}")
     print(f"Static head (Δz)   : {delta_z:+.3f} m")
     if delta_z > 0:
