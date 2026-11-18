@@ -14,11 +14,8 @@
 ### مثال
 اگر تراز ابتدا ۱۰ m و تراز مقصد ۳۵ m باشد، اختلاف ارتفاع +۲۵ m است. در جهت معکوس، مقدار -۲۵ m خواهد بود.
 
-### کاربردها
-انتقال بین مخازن، حوضچه‌ها یا تجهیزات با تراز مشخص و بررسی اثر مسیر سربالایی یا سرازیری.
-
-### محدودیت‌ها
-این ماژول افت لوله، اتصالات، افت تجهیزات، فشار مرزی، هد سرعت یا توان پمپ را محاسبه نمی‌کند. اختلاف ارتفاع به‌تنهایی TDH نیست.
+### کاربردها و محدودیت‌ها
+برای انتقال بین مخازن و تجهیزاتی با تراز مشخص مناسب است. این ماژول افت لوله، اتصالات، افت تجهیزات، فشار مرزی، هد سرعت یا توان پمپ را محاسبه نمی‌کند. اختلاف ارتفاع به‌تنهایی TDH نیست.
 
 ## English Section
 
@@ -34,8 +31,5 @@ This module calculates the elevation contribution to the energy balance. Static 
 ### Example
 If the source elevation is 10 m and destination elevation is 35 m, the elevation difference is +25 m. Reversing the direction gives -25 m.
 
-### Suitable applications
-Transfers between tanks, basins or equipment with known elevations and comparison of uphill/downhill routes.
-
-### Limitations
-This module does not calculate pipe friction, fittings, equipment losses, boundary pressure, velocity head or pump power. Elevation difference alone is not TDH.
+### Applications and limitations
+Suitable for transfers between tanks and equipment with known elevations. It does not calculate pipe friction, fittings, equipment losses, boundary pressure, velocity head or pump power. Elevation difference alone is not TDH.
