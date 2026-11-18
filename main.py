@@ -29,9 +29,11 @@ def read_number(prompt, *, allow_negative=False, minimum=None):
         except ValueError:
             print("Enter a valid finite number within the permitted range.")
 
-def read_choice(prompt, valid):
+def read_choice(prompt, valid, default=None):
     while True:
         value = input(prompt).strip()
+        if not value and default is not None:
+            return default
         if value in valid:
             return value
         print("Invalid selection. Choose one of: " + ", ".join(valid))
@@ -168,7 +170,9 @@ def collect_power_results(flow_m3_h, required_tdh_m, density_kg_m3):
     print("1. Enter pump and motor efficiencies manually")
     print("2. Enter pump-curve points one by one (flow and head; efficiency and shaft power optional)")
     print("3. Use default efficiencies of 100% (theoretical minimum power)")
-    mode = read_choice("Select power method [1-3]: ", ["1", "2", "3"])
+    mode = read_choice(
+        "Select power method [1-3, Enter=3 (idealized 100%)]: ",
+        ["1", "2", "3"], default="3")
     pump_efficiency = 1.0
     motor_efficiency = 1.0
     shaft_power_kw = None
@@ -316,8 +320,7 @@ def main():
     print("\n" + "=" * 68)
     power_result = None
     if result["total_tdh_m"] >= 0:
-        if read_choice("\nCalculate pump and motor power? [y/N]: ", ["y", "Y", "n", "N"]) in ("y", "Y"):
-            power_result = collect_power_results(flow, result["total_tdh_m"], fluid.density_kg_m3)
+        power_result = collect_power_results(flow, result["total_tdh_m"], fluid.density_kg_m3)
     else:
         print("\nPower calculation skipped because required TDH is negative.")
 
