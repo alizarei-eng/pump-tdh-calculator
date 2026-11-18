@@ -250,6 +250,9 @@ def print_power_results(power):
     print(f"Motor efficiency                       : {power['motor_efficiency'] * 100:.2f}%")
     print(f"Pump shaft power                       : {power['shaft_power_kw']:.3f} kW")
     print(f"Electrical input power                 : {power['electric_power_kw']:.3f} kW")
+    print("-" * 68)
+    print(f"FINAL REQUIRED ELECTRICAL POWER        : {power['electric_power_kw']:.3f} kW")
+    print("This is the estimated total electrical input power for the pump motor.")
     print(f"Efficiency / power data source         : {power['efficiency_source']}")
     if power["curve_head_m"] is not None:
         print(f"Pump-curve head at required flow       : {power['curve_head_m']:.3f} m")
