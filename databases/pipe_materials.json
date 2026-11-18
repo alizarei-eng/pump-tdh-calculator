@@ -1,0 +1,16 @@
+{
+  "materials": [
+    {"id": 1, "name": "HDPE", "roughness_mm": 0.0015, "roughness_label": "Smooth PE pipe", "uses_hdpe_database": true},
+    {"id": 2, "name": "PVC / uPVC", "roughness_mm": 0.0015, "roughness_label": "Smooth plastic pipe", "uses_hdpe_database": false},
+    {"id": 3, "name": "Steel - commercial", "roughness_mm": 0.045, "roughness_label": "Commercial steel", "uses_hdpe_database": false},
+    {"id": 4, "name": "Ductile iron - cement lined", "roughness_mm": 0.1, "roughness_label": "Cement-mortar lined ductile iron", "uses_hdpe_database": false},
+    {"id": 5, "name": "Cast iron", "roughness_mm": 0.26, "roughness_label": "Typical aged cast iron reference", "uses_hdpe_database": false},
+    {"id": 6, "name": "GRP / FRP", "roughness_mm": 0.01, "roughness_label": "Typical smooth GRP reference", "uses_hdpe_database": false},
+    {"id": 7, "name": "Manual input", "roughness_mm": null, "roughness_label": "User-defined", "uses_hdpe_database": false}
+  ],
+  "notes": [
+    "Roughness values are indicative engineering defaults, not guaranteed manufacturer values.",
+    "For existing or lined pipes, select roughness based on actual condition and a suitable engineering reference.",
+    "HDPE dimensions are read from pipe_standards.json; other materials use a manually entered internal diameter in this initial version."
+  ]
+}
