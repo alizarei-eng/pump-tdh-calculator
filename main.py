@@ -276,6 +276,166 @@ def print_power_results(power):
         print("NOTE: A 100% default is idealized; actual electrical consumption will normally be higher.")
 
 
+def print_input_review(inputs):
+    """Show the complete editable input set used for the current calculation."""
+    print("\n" + "=" * 68)
+    print("INPUT REVIEW — CURRENT CALCULATION")
+    print("=" * 68)
+    rows = [
+        ("1", "EC at 25 °C", f"{inputs['ec']:.4f} mS/cm"),
+        ("2", "Water composition profile", inputs["profile"]),
+        ("3", "Operating temperature", f"{inputs['operating_temp']:.2f} °C"),
+        ("4", "Elevation difference Δz", f"{inputs['delta_z']:+.4f} m"),
+        ("5", "Flow rate", f"{inputs['flow']:.4f} m³/h"),
+        ("6", "Straight pipe length", f"{inputs['length']:.4f} m"),
+        ("7", "Internal pipe diameter", f"{inputs['diameter']:.4f} mm"),
+        ("8", "Absolute roughness", f"{inputs['roughness']:.6g} mm"),
+        ("9", "Total fitting K", f"{inputs['fittings_k']:.6g}"),
+        ("10", "Total equipment pressure drop", f"{inputs['equipment_dp']:.6g} bar"),
+        ("11", "Start boundary pressure", f"{inputs['p1']:.4f} kPa(g)"),
+        ("12", "End boundary pressure", f"{inputs['p2']:.4f} kPa(g)"),
+        ("13", "Start boundary velocity", f"{inputs['v1']:.4f} m/s"),
+        ("14", "End boundary velocity", f"{inputs['v2']:.4f} m/s"),
+        ("15", "Pump/motor power method", inputs.get("power_method_label", "Not set")),
+    ]
+    if inputs.get("pump_efficiency") is not None:
+        rows.append(("16", "Pump efficiency", f"{inputs['pump_efficiency'] * 100:.3f} %"))
+    if inputs.get("motor_efficiency") is not None:
+        rows.append(("17", "Motor efficiency", f"{inputs['motor_efficiency'] * 100:.3f} %"))
+    if inputs.get("pipe_description"):
+        rows.append(("-", "Selected pipe/catalogue", inputs["pipe_description"]))
+    for number, label, value in rows:
+        print(f"{number:>2}. {label:<38}: {value}")
+    print("\nNote: fittings and equipment are shown as their total equivalent K and total pressure drop.")
+    print("Individual fitting/equipment entries can be re-entered through their edit options.")
+
+
+def calculate_and_print(inputs):
+    """Recalculate all dependent results using the current input values."""
+    try:
+        fluid = estimate_from_ec(
+            ec_ms_cm=inputs["ec"], temperature_c=inputs["operating_temp"],
+            composition_profile=inputs["profile"], ec_reference_temperature_c=25.0)
+        result = calculate_tdh(
+            flow_m3_h=inputs["flow"], pipe_length_m=inputs["length"],
+            internal_diameter_mm=inputs["diameter"], roughness_mm=inputs["roughness"],
+            density_kg_m3=fluid.density_kg_m3,
+            kinematic_viscosity_m2_s=fluid.kinematic_viscosity_m2_s,
+            total_fitting_k=inputs["fittings_k"],
+            equipment_pressure_drop_bar=inputs["equipment_dp"],
+            elevation_difference_m=inputs["delta_z"],
+            pressure_start_kpa=inputs["p1"], pressure_end_kpa=inputs["p2"],
+            velocity_start_m_s=inputs["v1"], velocity_end_m_s=inputs["v2"])
+    except ValueError as exc:
+        print(f"Calculation error: {exc}")
+        return None
+
+    power_result = None
+    if result["total_tdh_m"] >= 0:
+        mode = inputs.get("power_mode")
+        if mode == "manual":
+            try:
+                power_result = calculate_power(
+                    flow_m3_h=inputs["flow"], required_tdh_m=result["total_tdh_m"],
+                    density_kg_m3=fluid.density_kg_m3,
+                    pump_efficiency=inputs["pump_efficiency"],
+                    motor_efficiency=inputs["motor_efficiency"])
+                power_result["curve_head_m"] = None
+                power_result["curve_head_margin_m"] = None
+                power_result["curve_warning"] = None
+                power_result["efficiency_source"] = "manual input"
+            except ValueError as exc:
+                print(f"Power calculation error: {exc}")
+        else:
+            power_result = collect_power_results(
+                inputs["flow"], result["total_tdh_m"], fluid.density_kg_m3)
+            if power_result is not None:
+                inputs["power_mode"] = "ideal" if power_result["pump_efficiency"] == 1 and power_result["motor_efficiency"] == 1 else "configured"
+                inputs["power_method_label"] = power_result["efficiency_source"]
+                inputs["pump_efficiency"] = power_result["pump_efficiency"]
+                inputs["motor_efficiency"] = power_result["motor_efficiency"]
+
+    print("\n" + "=" * 68)
+    print("FLUID PROPERTY ESTIMATES")
+    print(f"EC (temperature-compensated to 25 °C) : {fluid.ec_ms_cm:.3f} mS/cm")
+    print(f"Operating water temperature           : {fluid.temperature_c:.2f} °C")
+    print(f"Composition profile                   : {fluid.fluid_type}")
+    print(f"Estimated TDS                         : {fluid.tds_mg_l:.1f} mg/L")
+    print(f"Estimated density                     : {fluid.density_kg_m3:.3f} kg/m³")
+    print(f"Estimated kinematic viscosity         : {fluid.kinematic_viscosity_m2_s:.6g} m²/s")
+    print("\nPIPE DATA")
+    print(f"Nominal internal diameter             : {inputs['diameter']:.2f} mm")
+    print(f"Absolute roughness                    : {inputs['roughness']:g} mm")
+    print("\nHYDRAULIC RESULTS")
+    print(f"Pipe velocity                         : {result['pipe_velocity_m_s']:.3f} m/s")
+    print(f"Reynolds number                       : {result['reynolds']:.0f}")
+    print(f"Flow regime                           : {result['flow_regime']}")
+    print(f"Darcy friction factor                 : {result['darcy_friction_factor']:.6f}")
+    print("-" * 68)
+    print(f"Static head Δz                        : {result['static_head_m']:+.4f} m")
+    print(f"Pressure head difference              : {result['pressure_head_m']:+.4f} m")
+    print(f"Velocity head difference               : {result['velocity_head_difference_m']:+.4f} m")
+    print(f"Major pipe loss                       : {result['major_loss_m']:.4f} m")
+    print(f"Fittings / valves loss                : {result['fitting_loss_m']:.4f} m")
+    print(f"Equipment pressure loss               : {result['equipment_loss_m']:.4f} m")
+    print("-" * 68)
+    print(f"REQUIRED PUMP TDH                     : {result['total_tdh_m']:.4f} m")
+    print_power_results(power_result)
+    if result["total_tdh_m"] < 0:
+        print("\nPower calculation skipped because required TDH is negative.")
+        print("NOTE: Negative TDH may indicate gravity-driven flow or boundary conditions to review.")
+    if result["friction_warning"]:
+        print(f"WARNING: {result['friction_warning']}")
+    for warning in fluid.warnings:
+        print(f"FLUID NOTE: {warning}")
+    print("=" * 68)
+    return fluid, result, power_result
+
+
+def edit_inputs(inputs):
+    """One-parameter-at-a-time input editor."""
+    while True:
+        print_input_review(inputs)
+        print("\nEDIT ONE PARAMETER")
+        print("1 EC | 2 composition profile | 3 temperature | 4 elevation difference")
+        print("5 flow | 6 pipe length | 7 internal diameter | 8 roughness")
+        print("9 total fitting K | 10 equipment pressure drop")
+        print("11 start pressure | 12 end pressure | 13 start velocity | 14 end velocity")
+        print("15 re-enter pump/motor power data")
+        print("0 return/finish")
+        choice = read_choice("Select one item to edit [0-15]: ",
+                             [str(i) for i in range(16)], default="0")
+        if choice == "0":
+            return
+        key_map = {
+            "1": ("ec", "EC at 25 °C (mS/cm): ", False, 0.0),
+            "3": ("operating_temp", "Operating temperature (°C): ", False, 0.0),
+            "4": ("delta_z", "Elevation difference Δz (m): ", True, None),
+            "5": ("flow", "Flow rate (m³/h): ", False, 0.000001),
+            "6": ("length", "Straight pipe length (m): ", False, 0.0),
+            "7": ("diameter", "Internal diameter (mm): ", False, 0.000001),
+            "8": ("roughness", "Absolute roughness (mm): ", False, 0.0),
+            "9": ("fittings_k", "Total fitting K: ", False, 0.0),
+            "10": ("equipment_dp", "Total equipment pressure drop (bar): ", False, 0.0),
+            "11": ("p1", "Start pressure (kPa gauge): ", True, None),
+            "12": ("p2", "End pressure (kPa gauge): ", True, None),
+            "13": ("v1", "Start velocity (m/s): ", False, 0.0),
+            "14": ("v2", "End velocity (m/s): ", False, 0.0),
+        }
+        if choice == "2":
+            profile_choice = read_choice(
+                "Composition profile [1=generic, 2=natural seawater]: ", ["1", "2"])
+            inputs["profile"] = "natural_seawater" if profile_choice == "2" else "generic"
+        elif choice == "15":
+            inputs["power_mode"] = None
+            inputs["power_method_label"] = "Re-entered after input edit"
+            return
+        else:
+            key, prompt, allow_negative, minimum = key_map[choice]
+            inputs[key] = read_number(prompt, allow_negative=allow_negative, minimum=minimum)
+        print("\nInput updated. All dependent results will be recalculated.")
+
+
 def main():
     print("=" * 68)
     print("PUMP TOTAL DYNAMIC HEAD (TDH) CALCULATOR")
@@ -291,6 +451,7 @@ def main():
     print("2. Natural seawater ionic-ratio screening profile")
     profile = "natural_seawater" if read_choice("Select profile [1-2]: ", ["1", "2"]) == "2" else "generic"
     operating_temp = read_number("Actual operating water temperature (°C): ")
+
     try:
         fluid = estimate_from_ec(ec_ms_cm=ec, temperature_c=operating_temp,
                                  composition_profile=profile, ec_reference_temperature_c=25.0)
@@ -311,58 +472,32 @@ def main():
     v1 = read_number("Start velocity (m/s): ") if read_choice("Enter start velocity? [y/N]: ", ["y", "Y", "n", "N"]) in ("y", "Y") else 0.0
     v2 = read_number("End velocity (m/s): ") if read_choice("Enter end velocity? [y/N]: ", ["y", "Y", "n", "N"]) in ("y", "Y") else 0.0
 
-    try:
-        result = calculate_tdh(
-            flow_m3_h=flow, pipe_length_m=length, internal_diameter_mm=diameter,
-            roughness_mm=roughness, density_kg_m3=fluid.density_kg_m3,
-            kinematic_viscosity_m2_s=fluid.kinematic_viscosity_m2_s,
-            total_fitting_k=fittings_k, equipment_pressure_drop_bar=equipment_dp,
-            elevation_difference_m=delta_z, pressure_start_kpa=p1, pressure_end_kpa=p2,
-            velocity_start_m_s=v1, velocity_end_m_s=v2)
-    except ValueError as exc:
-        print(f"Calculation input error: {exc}")
-        return
+    inputs = {
+        "ec": ec, "profile": profile, "operating_temp": operating_temp,
+        "delta_z": delta_z, "flow": flow, "length": length,
+        "diameter": diameter, "roughness": roughness,
+        "fittings_k": fittings_k, "equipment_dp": equipment_dp,
+        "p1": p1, "p2": p2, "v1": v1, "v2": v2,
+        "pipe_description": (
+            f"HDPE grade={pipe_info['grade']}, SDR={pipe_info['sdr']}, OD={pipe_info['outside_diameter_mm']} mm"
+            if pipe_info else "Non-HDPE pipe; geometry entered manually"
+        ),
+        "power_mode": None, "power_method_label": "Not yet configured",
+        "pump_efficiency": None, "motor_efficiency": None,
+    }
 
-    print("\n" + "=" * 68)
-    power_result = None
-    if result["total_tdh_m"] >= 0:
-        power_result = collect_power_results(flow, result["total_tdh_m"], fluid.density_kg_m3)
-    else:
-        print("\nPower calculation skipped because required TDH is negative.")
+    while True:
+        calculated = calculate_and_print(inputs)
+        if calculated is None:
+            print("Correct the inputs before continuing.")
+        print_input_review(inputs)
+        action = read_choice(
+            "\nChoose: [1] Edit one input and recalculate  [0] Exit: ",
+            ["0", "1"], default="0")
+        if action == "0":
+            break
+        edit_inputs(inputs)
 
-    print("FLUID PROPERTY ESTIMATES")
-    print(f"EC (temperature-compensated to 25 °C) : {fluid.ec_ms_cm:.3f} mS/cm")
-    print(f"Operating water temperature           : {fluid.temperature_c:.2f} °C")
-    print(f"Composition profile                   : {fluid.fluid_type}")
-    print(f"Estimated TDS                         : {fluid.tds_mg_l:.1f} mg/L")
-    print(f"Estimated density                     : {fluid.density_kg_m3:.3f} kg/m³")
-    print(f"Estimated kinematic viscosity         : {fluid.kinematic_viscosity_m2_s:.6g} m²/s")
-    print("\nPIPE DATA")
-    print(f"Nominal internal diameter             : {diameter:.2f} mm")
-    print(f"Absolute roughness                    : {roughness:g} mm")
-    print("\nHYDRAULIC RESULTS")
-    print(f"Pipe velocity                         : {result['pipe_velocity_m_s']:.3f} m/s")
-    print(f"Reynolds number                       : {result['reynolds']:.0f}")
-    print(f"Flow regime                           : {result['flow_regime']}")
-    print(f"Darcy friction factor                 : {result['darcy_friction_factor']:.6f}")
-    print("-" * 68)
-    print(f"Static head Δz                        : {result['static_head_m']:+.4f} m")
-    print(f"Pressure head difference              : {result['pressure_head_m']:+.4f} m")
-    print(f"Velocity head difference              : {result['velocity_head_difference_m']:+.4f} m")
-    print(f"Major pipe loss                       : {result['major_loss_m']:.4f} m")
-    print(f"Fittings / valves loss                : {result['fitting_loss_m']:.4f} m")
-    print(f"Equipment pressure loss               : {result['equipment_loss_m']:.4f} m")
-    print("-" * 68)
-    print(f"REQUIRED PUMP TDH                     : {result['total_tdh_m']:.4f} m")
-    print_power_results(power_result)
-    if result["total_tdh_m"] < 0:
-        print("NOTE: Negative TDH indicates boundary conditions/gravity head may drive the flow; verify system definition.")
-    if result["friction_warning"]:
-        print(f"WARNING: {result['friction_warning']}")
-    print("\nFluid-property limitations:")
-    for warning in fluid.warnings:
-        print(f"- {warning}")
-    print("=" * 68)
 
 if __name__ == "__main__":
     main()
