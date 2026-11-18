@@ -4,7 +4,7 @@ from core.fluid_properties import estimate_from_ec
 
 class TestECFluidProperties(unittest.TestCase):
     def test_tds_from_ec(self):
-        water = estimate_from_ec(10.0, 25.0, tds_factor=0.65)
+        water = estimate_from_ec(10.0, 25.0)
         self.assertAlmostEqual(water.tds_mg_l, 6500.0)
         self.assertGreater(water.density_kg_m3, 997.0)
         self.assertGreater(water.dynamic_viscosity_pa_s, 0.00089)
