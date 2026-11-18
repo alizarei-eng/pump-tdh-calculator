@@ -1,0 +1,15 @@
+{
+  "equipment": [
+    {"id": 1, "name": "Bag filter", "pressure_drop_input": "measured differential pressure"},
+    {"id": 2, "name": "Cartridge filter", "pressure_drop_input": "measured differential pressure"},
+    {"id": 3, "name": "Sand / multimedia filter", "pressure_drop_input": "measured differential pressure"},
+    {"id": 4, "name": "Heat exchanger", "pressure_drop_input": "manufacturer or measured differential pressure"},
+    {"id": 5, "name": "Membrane / RO train", "pressure_drop_input": "measured or design differential pressure"},
+    {"id": 6, "name": "Other equipment", "pressure_drop_input": "manufacturer or measured differential pressure"}
+  ],
+  "notes": [
+    "No universal K or pressure-loss value is assigned to equipment.",
+    "Enter the pressure drop across each item in bar; the program converts it to metres of fluid using the estimated density.",
+    "For filters and RO equipment, use actual operating differential pressure or validated design data."
+  ]
+}
