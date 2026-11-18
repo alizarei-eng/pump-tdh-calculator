@@ -1,6 +1,21 @@
 import unittest
 from core.minor_losses import calculate_minor_loss, pressure_drop_to_head
 from core.tdh import calculate_tdh
+from core.pipe_database import available_grades, available_sdrs, available_ods, get_pe_pipe, get_material_roughness
+
+class TestPipeDatabase(unittest.TestCase):
+    def test_pe100_sdr11_od110_geometry(self):
+        pipe = get_pe_pipe("PE100", 11, 110)
+        self.assertAlmostEqual(pipe["internal_diameter_mm"], 90.0, places=1)
+        self.assertAlmostEqual(pipe["wall_thickness_mm"], 10.0, places=1)
+    def test_available_pipe_catalogue_options(self):
+        self.assertIn("PE100", available_grades())
+        self.assertIn(11.0, available_sdrs("PE100"))
+        self.assertIn(110.0, available_ods("PE100", 11))
+    def test_hdpe_roughness_is_loaded(self):
+        roughness, name, label = get_material_roughness(1)
+        self.assertAlmostEqual(roughness, 0.0015)
+        self.assertEqual(name, "HDPE")
 
 class TestMinorLosses(unittest.TestCase):
     def test_k_loss(self):
