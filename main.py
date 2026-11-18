@@ -248,14 +248,20 @@ def collect_power_results(flow_m3_h, required_tdh_m, density_kg_m3):
 def print_power_results(power):
     if power is None:
         return
+    # Mechanical horsepower: 1 kW = 1.34102209 hp.
+    kw_to_hp = 1.34102209
+    hydraulic_hp = power["hydraulic_power_kw"] * kw_to_hp
+    shaft_hp = power["shaft_power_kw"] * kw_to_hp
+    electric_hp = power["electric_power_kw"] * kw_to_hp
+
     print("\nPUMP POWER RESULTS")
-    print(f"Hydraulic power (system TDH)           : {power['hydraulic_power_kw']:.3f} kW")
+    print(f"Hydraulic power (system TDH)           : {power['hydraulic_power_kw']:.3f} kW ({hydraulic_hp:.3f} hp)")
     print(f"Pump efficiency                        : {power['pump_efficiency'] * 100:.2f}%")
     print(f"Motor efficiency                       : {power['motor_efficiency'] * 100:.2f}%")
-    print(f"Pump shaft power                       : {power['shaft_power_kw']:.3f} kW")
-    print(f"Electrical input power                 : {power['electric_power_kw']:.3f} kW")
+    print(f"Pump shaft power                       : {power['shaft_power_kw']:.3f} kW ({shaft_hp:.3f} hp)")
+    print(f"Electrical input power                 : {power['electric_power_kw']:.3f} kW ({electric_hp:.3f} hp)")
     print("-" * 68)
-    print(f"FINAL REQUIRED ELECTRICAL POWER        : {power['electric_power_kw']:.3f} kW")
+    print(f"FINAL REQUIRED ELECTRICAL POWER        : {power['electric_power_kw']:.3f} kW ({electric_hp:.3f} hp)")
     print("This is the estimated total electrical input power for the pump motor.")
     print(f"Efficiency / power data source         : {power['efficiency_source']}")
     if power["curve_head_m"] is not None:
