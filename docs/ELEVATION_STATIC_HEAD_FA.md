@@ -1,35 +1,41 @@
-# Elevation and Static Head | اختلاف ارتفاع و هد استاتیکی
+# اختلاف ارتفاع و هد استاتیکی
 
-## Purpose | هدف
-**EN:** This module calculates the elevation contribution to the pump energy balance. It is one component of TDH, not a complete TDH calculation by itself.
+## بخش فارسی
 
-**FA:** این ماژول مؤلفه اختلاف ارتفاع را در تراز انرژی پمپ محاسبه می‌کند. این فقط یکی از اجزای TDH است و به‌تنهایی محاسبه کامل TDH نیست.
+### هدف
+این ماژول سهم اختلاف ارتفاع را در تراز انرژی محاسبه می‌کند. هد استاتیکی فقط یکی از مؤلفه‌های TDH است.
 
-## Input methods | روش‌های ورود
-1. **Direct elevation difference | اختلاف ارتفاع مستقیم:** enter Δz in metres. Positive means the destination is higher; negative means it is lower.
-2. **Start and end elevations | تراز ابتدا و انتها:** enter z1 and z2 relative to the same common vertical datum.
+### روش‌های ورود
+۱. اختلاف ارتفاع مستقیم: مقدار Δz را وارد کنید. مثبت یعنی مقصد بالاتر از مبدأ است.
+۲. تراز ابتدا و انتها: هر دو تراز باید نسبت به یک مبنای ارتفاعی مشترک باشند.
 
 `Δz=z2-z1`
 
-Example: z1=10 m and z2=35 m gives Δz=+25 m. Reversing the direction gives -25 m.
+### مثال
+اگر تراز ابتدا ۱۰ m و تراز مقصد ۳۵ m باشد، اختلاف ارتفاع +۲۵ m است. در جهت معکوس، مقدار -۲۵ m خواهد بود.
 
-مثال: تراز ابتدا ۱۰ و تراز مقصد ۳۵ متر باشد، اختلاف ارتفاع +۲۵ متر است. با معکوس شدن جهت، مقدار -۲۵ متر می‌شود.
+### کاربردها
+انتقال بین مخازن، حوضچه‌ها یا تجهیزات با تراز مشخص و بررسی اثر مسیر سربالایی یا سرازیری.
 
-## Suitable applications | موارد کاربرد
-- **EN:** Transfers between tanks, reservoirs or process equipment where boundary elevations are known.
-- **FA:** انتقال بین مخازن، حوضچه‌ها یا تجهیزات فرایندی که تراز مرزهای آن‌ها مشخص است.
-- **EN:** Comparing uphill and downhill routes and supplying the static-head term to the TDH calculation.
-- **FA:** مقایسه مسیرهای سربالایی و سرازیری و تأمین مؤلفه هد استاتیکی برای محاسبه TDH.
+### محدودیت‌ها
+این ماژول افت لوله، اتصالات، افت تجهیزات، فشار مرزی، هد سرعت یا توان پمپ را محاسبه نمی‌کند. اختلاف ارتفاع به‌تنهایی TDH نیست.
 
-## Limitations | محدودیت‌ها
-- Both elevations must use the same vertical datum. | هر دو تراز باید نسبت به یک مبنای ارتفاعی مشترک باشند.
-- This module does not calculate pipe friction, fittings, equipment pressure drop, boundary pressure/velocity terms or pump power. | این ماژول افت لوله، اتصالات، افت تجهیزات، مؤلفه فشار/سرعت مرزی یا توان پمپ را محاسبه نمی‌کند.
-- Elevation alone is not pump TDH. All other energy terms and losses must be included. | اختلاف ارتفاع به‌تنهایی TDH پمپ نیست؛ تمام مؤلفه‌های انرژی و افت‌ها باید لحاظ شوند.
+## English Section
 
-In the current application, the result is passed into the complete single-path TDH calculation.
-در برنامه فعلی، نتیجه این ماژول به محاسبه کامل TDH تک‌مسیره وارد می‌شود.
+### Purpose
+This module calculates the elevation contribution to the energy balance. Static head is only one component of TDH.
 
-## Tests | آزمون‌ها
-```bash
-python -m unittest discover -s tests -v
-```
+### Input methods
+1. Direct elevation difference: enter Δz. A positive value means the destination is higher than the source.
+2. Start and end elevations: both values must use the same vertical datum.
+
+`Δz=z2-z1`
+
+### Example
+If the source elevation is 10 m and destination elevation is 35 m, the elevation difference is +25 m. Reversing the direction gives -25 m.
+
+### Suitable applications
+Transfers between tanks, basins or equipment with known elevations and comparison of uphill/downhill routes.
+
+### Limitations
+This module does not calculate pipe friction, fittings, equipment losses, boundary pressure, velocity head or pump power. Elevation difference alone is not TDH.
