@@ -1,40 +1,35 @@
-# گروه اختلاف ارتفاع و هد استاتیکی در محاسبه TDH
+# Elevation and Static Head | اختلاف ارتفاع و هد استاتیکی
 
-## هدف
-این ماژول اختلاف تراز بین مبدأ و مقصد را به‌عنوان مؤلفه هد استاتیکی محاسبه می‌کند. این محاسبه بخشی از محاسبه هد کل پمپ است و به‌تنهایی TDH کامل نیست.
+## Purpose | هدف
+**EN:** This module calculates the elevation contribution to the pump energy balance. It is one component of TDH, not a complete TDH calculation by itself.
 
-## دو روش ورود اطلاعات
-1. **اختلاف ارتفاع مستقیم:** مقدار `Δz` بر حسب متر وارد می‌شود. مقدار مثبت یعنی مقصد بالاتر از مبدأ و مقدار منفی یعنی مقصد پایین‌تر است.
-2. **ارتفاع ابتدا و انتها:** مقادیر `z1` و `z2` جداگانه وارد می‌شوند. هر دو باید نسبت به یک مبنای ارتفاعی مشترک (Common Vertical Datum) باشند.
+**FA:** این ماژول مؤلفه اختلاف ارتفاع را در تراز انرژی پمپ محاسبه می‌کند. این فقط یکی از اجزای TDH است و به‌تنهایی محاسبه کامل TDH نیست.
 
-رابطه:
+## Input methods | روش‌های ورود
+1. **Direct elevation difference | اختلاف ارتفاع مستقیم:** enter Δz in metres. Positive means the destination is higher; negative means it is lower.
+2. **Start and end elevations | تراز ابتدا و انتها:** enter z1 and z2 relative to the same common vertical datum.
 
-```
-Δz = z2 - z1
-```
+`Δz=z2-z1`
 
-مثال: انتقال از تراز 10 m به 35 m دارای هد استاتیکی +25 m است. در جهت معکوس، مقدار -25 m خواهد بود.
+Example: z1=10 m and z2=35 m gives Δz=+25 m. Reversing the direction gives -25 m.
 
-## ارتباط با معادله انرژی پمپ
-برای دو مقطع در یک سیستم جریان پایا، فرم عمومی معادله هد پمپ به‌صورت زیر است:
+مثال: تراز ابتدا ۱۰ و تراز مقصد ۳۵ متر باشد، اختلاف ارتفاع +۲۵ متر است. با معکوس شدن جهت، مقدار -۲۵ متر می‌شود.
 
-```
-Hp = Δz + Δ(P/ρg) + Δ(V²/2g) + hf + hm
-```
+## Suitable applications | موارد کاربرد
+- **EN:** Transfers between tanks, reservoirs or process equipment where boundary elevations are known.
+- **FA:** انتقال بین مخازن، حوضچه‌ها یا تجهیزات فرایندی که تراز مرزهای آن‌ها مشخص است.
+- **EN:** Comparing uphill and downhill routes and supplying the static-head term to the TDH calculation.
+- **FA:** مقایسه مسیرهای سربالایی و سرازیری و تأمین مؤلفه هد استاتیکی برای محاسبه TDH.
 
-- `Δz`: اختلاف ارتفاع
-- `Δ(P/ρg)`: اختلاف هد فشار
-- `Δ(V²/2g)`: اختلاف هد سرعت
-- `hf`: افت اصطکاکی طولی
-- `hm`: افت موضعی تجهیزات و اتصالات
+## Limitations | محدودیت‌ها
+- Both elevations must use the same vertical datum. | هر دو تراز باید نسبت به یک مبنای ارتفاعی مشترک باشند.
+- This module does not calculate pipe friction, fittings, equipment pressure drop, boundary pressure/velocity terms or pump power. | این ماژول افت لوله، اتصالات، افت تجهیزات، مؤلفه فشار/سرعت مرزی یا توان پمپ را محاسبه نمی‌کند.
+- Elevation alone is not pump TDH. All other energy terms and losses must be included. | اختلاف ارتفاع به‌تنهایی TDH پمپ نیست؛ تمام مؤلفه‌های انرژی و افت‌ها باید لحاظ شوند.
 
-در این مرحله، گروه ارتفاع فقط `Δz` را محاسبه می‌کند. ترکیب نهایی همه مؤلفه‌ها در مراحل بعدی توسعه TDH انجام خواهد شد.
+In the current application, the result is passed into the complete single-path TDH calculation.
+در برنامه فعلی، نتیجه این ماژول به محاسبه کامل TDH تک‌مسیره وارد می‌شود.
 
-اگر هر دو مرز سیستم سطح آزاد مخازن باز به اتمسفر باشند، اختلاف هد فشار در دو سطح آزاد صفر است. در سیستم بسته یا زمانی که فشار مرزی دو نقطه متفاوت است، مؤلفه هد فشار باید لحاظ شود.
-
-## تست
-از ریشه پروژه اجرا کنید:
-
+## Tests | آزمون‌ها
 ```bash
 python -m unittest discover -s tests -v
 ```
