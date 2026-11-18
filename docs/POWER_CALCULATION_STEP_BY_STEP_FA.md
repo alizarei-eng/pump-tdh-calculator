@@ -214,6 +214,7 @@ Pelectric = Pshaft / ηmotor
 - `Motor efficiency`: راندمان موتور استفاده‌شده در محاسبه.
 - `Pump shaft power`: توان مکانیکی محور پمپ.
 - `Electrical input power`: توان الکتریکی تخمینی ورودی موتور.
+- `FINAL REQUIRED ELECTRICAL POWER`: توان الکتریکی نهایی موردنیاز در ورودی موتور؛ این مقدار برابر Electrical input power است و در انتهای گزارش توان به‌صورت برجسته نمایش داده می‌شود.
 - `Pump-curve head at required flow`: هد تخمینی پمپ در دبی موردنیاز.
 - `Pump head minus required system TDH`: اختلاف هد پمپ و هد موردنیاز سیستم.
 
