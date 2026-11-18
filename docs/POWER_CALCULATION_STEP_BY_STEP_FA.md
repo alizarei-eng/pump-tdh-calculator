@@ -19,7 +19,7 @@
 
 `Pelectric=Pshaft/ηmotor`
 
-در این روابط، Q بر حسب m³/s، هد بر حسب متر و راندمان‌ها به‌صورت عدد اعشاری هستند. خروجی توان بر حسب kW نمایش داده می‌شود.
+در این روابط، Q بر حسب m³/s، هد بر حسب متر و راندمان‌ها به‌صورت عدد اعشاری هستند. هر سه خروجی توان (هیدرولیکی، محور و برق ورودی) هم بر حسب kW و هم بر حسب اسب بخار مکانیکی (hp) نمایش داده می‌شوند. ضریب تبدیل برنامه برابر است با `hp = kW × 1.34102209`.
 
 ### تفسیر نتایج
 - **توان هیدرولیکی:** توانی که به سیال منتقل می‌شود و از دبی، چگالی و TDH به دست می‌آید.
@@ -56,7 +56,7 @@ After TDH is calculated, the application enters the power-calculation section au
 
 `Pelectric=Pshaft/ηmotor`
 
-In these equations, Q is in m³/s, head is in metres, and efficiencies are decimal fractions. Power outputs are displayed in kW.
+In these equations, Q is in m³/s, head is in metres, and efficiencies are decimal fractions. All three power outputs (hydraulic, shaft and electrical input) are displayed in both kW and mechanical horsepower (hp), using `hp = kW × 1.34102209`.
 
 ### Interpreting the results
 - **Hydraulic power:** power transferred to the fluid, calculated from flow, density and TDH.
