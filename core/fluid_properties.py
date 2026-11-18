@@ -9,6 +9,8 @@ composition profile; they are not inferred for arbitrary groundwater/brine.
 from dataclasses import dataclass
 import math
 
+_TDS_FACTOR = 0.65  # Internal default; not a routine user input.
+
 _FRESHWATER_TABLE = {
     0.0: (999.84, 1.792e-3), 5.0: (999.97, 1.519e-3),
     10.0: (999.70, 1.307e-3), 15.0: (999.10, 1.138e-3),
@@ -79,7 +81,6 @@ def estimate_from_ec(
     ec_ms_cm: float,
     temperature_c: float = 25.0,
     *,
-    tds_factor: float = 0.65,
     composition_profile: str = "generic",
     ec_reference_temperature_c: float = 25.0,
 ) -> FluidProperties:
@@ -89,19 +90,17 @@ def estimate_from_ec(
     25 °C). TDS ≈ EC(µS/cm) × tds_factor. Density and viscosity are approximate
     screening correlations; concentrated brine needs validated properties.
     """
-    vals = (ec_ms_cm, temperature_c, tds_factor, ec_reference_temperature_c)
+    vals = (ec_ms_cm, temperature_c, ec_reference_temperature_c)
     if any(not math.isfinite(float(v)) for v in vals):
         raise ValueError("All inputs must be finite numbers.")
     if ec_ms_cm < 0:
         raise ValueError("EC cannot be negative.")
-    if not 0.0 < tds_factor <= 1.2:
-        raise ValueError("TDS factor must be greater than 0 and at most 1.2.")
     if not 0.0 <= ec_reference_temperature_c <= 100.0:
         raise ValueError("EC reference temperature must be between 0 and 100 °C.")
     if composition_profile not in {"generic", "natural_seawater"}:
         raise ValueError("composition_profile must be 'generic' or 'natural_seawater'.")
 
-    tds_mg_l = ec_ms_cm * 1000.0 * tds_factor
+    tds_mg_l = ec_ms_cm * 1000.0 * _TDS_FACTOR
     tds_g_l = tds_mg_l / 1000.0
     rho_water, mu_water = _freshwater_base(float(temperature_c))
 
@@ -139,7 +138,7 @@ def estimate_from_ec(
         temperature_c=float(temperature_c),
         ec_ms_cm=float(ec_ms_cm),
         ec_reference_temperature_c=float(ec_reference_temperature_c),
-        tds_factor=float(tds_factor),
+        tds_factor=_TDS_FACTOR,
         tds_mg_l=float(tds_mg_l),
         density_kg_m3=float(density),
         dynamic_viscosity_pa_s=float(dynamic_viscosity),
