@@ -4,6 +4,7 @@ from pathlib import Path
 from core.fluid_properties import estimate_from_ec
 from core.elevation import calculate_static_head, calculate_static_head_from_difference
 from core.tdh import calculate_tdh
+from core.pump_power import calculate_power, interpolate_curve, validate_pump_curve
 from core.pipe_database import (available_grades, available_sdrs, available_ods,
     get_pe_pipe, get_materials, get_material_roughness, calculate_non_pe_geometry)
 
@@ -131,6 +132,136 @@ def collect_pipe():
     length = read_number("Total straight pipe length (m): ")
     return flow, length, internal_diameter, roughness, geometry if material["name"] == "HDPE" else None
 
+
+def read_optional_efficiency(prompt):
+    while True:
+        raw = input(prompt).strip().replace(",", ".")
+        if not raw:
+            print("No value entered: using 100% (idealized default, not measured efficiency).")
+            return 1.0
+        try:
+            percent = float(raw)
+            if not math.isfinite(percent) or not 0 < percent <= 100:
+                raise ValueError
+            return percent / 100.0
+        except ValueError:
+            print("Enter a percentage greater than 0 and at most 100, or leave blank.")
+
+
+def read_optional_positive(prompt):
+    while True:
+        raw = input(prompt).strip().replace(",", ".")
+        if not raw:
+            return None
+        try:
+            value = float(raw)
+            if not math.isfinite(value) or value <= 0:
+                raise ValueError
+            return value
+        except ValueError:
+            print("Enter a positive finite number, or leave blank.")
+
+
+def collect_power_results(flow_m3_h, required_tdh_m, density_kg_m3):
+    print("\nGROUP: PUMP AND MOTOR POWER")
+    print("1. Enter pump and motor efficiencies manually")
+    print("2. Enter pump-curve points one by one (flow and head; efficiency and shaft power optional)")
+    print("3. Use default efficiencies of 100% (theoretical minimum power)")
+    mode = read_choice("Select power method [1-3]: ", ["1", "2", "3"])
+    pump_efficiency = 1.0
+    motor_efficiency = 1.0
+    shaft_power_kw = None
+    curve_head = None
+    curve_warning = None
+
+    if mode == "1":
+        pump_efficiency = read_optional_efficiency("Pump efficiency (%) [Enter = 100%]: ")
+        motor_efficiency = read_optional_efficiency("Motor efficiency (%) [Enter = 100%]: ")
+    elif mode == "2":
+        count = int(read_number("Number of pump-curve points (2-30): ", minimum=2))
+        while count > 30:
+            print("Maximum supported points: 30.")
+            count = int(read_number("Number of pump-curve points (2-30): ", minimum=2))
+        points = []
+        for index in range(1, count + 1):
+            print(f"\nPump curve point {index}/{count}")
+            q = read_number("Flow rate (m³/h): ", minimum=0.000001)
+            h = read_number("Pump head (m): ", minimum=0)
+            eta_percent = read_optional_positive("Pump efficiency (%) [Enter if unavailable]: ")
+            if eta_percent is not None and eta_percent > 100:
+                print("Efficiency must not exceed 100%; please enter the curve again.")
+                return collect_power_results(flow_m3_h, required_tdh_m, density_kg_m3)
+            shaft = read_optional_positive("Pump shaft power (kW) [Enter if unavailable]: ")
+            points.append({
+                "flow_m3_h": q, "head_m": h,
+                "pump_efficiency": eta_percent / 100.0 if eta_percent is not None else None,
+                "shaft_power_kw": shaft,
+            })
+        try:
+            validate_pump_curve(points)
+        except ValueError as exc:
+            print(f"Pump-curve data error: {exc}")
+            return collect_power_results(flow_m3_h, required_tdh_m, density_kg_m3)
+
+        curve_head = interpolate_curve(points, flow_m3_h, "head_m")
+        curve_eta = interpolate_curve(points, flow_m3_h, "pump_efficiency")
+        shaft_power_kw = interpolate_curve(points, flow_m3_h, "shaft_power_kw")
+        if curve_head is None:
+            curve_warning = "Required flow is outside the entered pump-curve range. No extrapolation was made."
+        if curve_eta is not None:
+            pump_efficiency = curve_eta
+        elif shaft_power_kw is not None:
+            hydraulic_kw = density_kg_m3 * 9.80665 * (flow_m3_h / 3600.0) * required_tdh_m / 1000.0
+            derived_eta = hydraulic_kw / shaft_power_kw
+            if 0 < derived_eta <= 1:
+                pump_efficiency = derived_eta
+            else:
+                curve_warning = (curve_warning + " " if curve_warning else "") + "Derived efficiency is outside 0-100%; 100% default retained."
+        else:
+            print("No efficiency or shaft-power values were interpolated: using 100% pump efficiency.")
+        motor_efficiency = read_optional_efficiency("Motor efficiency (%) [Enter = 100%]: ")
+
+    try:
+        power = calculate_power(
+            flow_m3_h=flow_m3_h, required_tdh_m=required_tdh_m,
+            density_kg_m3=density_kg_m3, pump_efficiency=pump_efficiency,
+            motor_efficiency=motor_efficiency, shaft_power_kw=shaft_power_kw)
+    except ValueError as exc:
+        print(f"Power calculation error: {exc}")
+        return None
+    power["curve_head_m"] = curve_head
+    power["curve_head_margin_m"] = curve_head - required_tdh_m if curve_head is not None else None
+    power["curve_warning"] = curve_warning
+    power["efficiency_source"] = {
+        "1": "manual input (blank values default to 100%)",
+        "2": "entered pump curve (missing values default to 100%)",
+        "3": "100% idealized default",
+    }[mode]
+    return power
+
+
+def print_power_results(power):
+    if power is None:
+        return
+    print("\nPUMP POWER RESULTS")
+    print(f"Hydraulic power (system TDH)           : {power['hydraulic_power_kw']:.3f} kW")
+    print(f"Pump efficiency                        : {power['pump_efficiency'] * 100:.2f}%")
+    print(f"Motor efficiency                       : {power['motor_efficiency'] * 100:.2f}%")
+    print(f"Pump shaft power                       : {power['shaft_power_kw']:.3f} kW")
+    print(f"Electrical input power                 : {power['electric_power_kw']:.3f} kW")
+    print(f"Efficiency / power data source         : {power['efficiency_source']}")
+    if power["curve_head_m"] is not None:
+        print(f"Pump-curve head at required flow       : {power['curve_head_m']:.3f} m")
+        print(f"Pump head minus required system TDH    : {power['curve_head_margin_m']:+.3f} m")
+        print("NOTE: Head comparison only; the actual pump/system operating point has not been solved.")
+    if power["curve_warning"]:
+        print(f"WARNING: {power['curve_warning']}")
+    if power["consistency_warning"]:
+        print(f"WARNING: {power['consistency_warning']}")
+    if power["pump_efficiency"] == 1.0 or power["motor_efficiency"] == 1.0:
+        print("NOTE: A 100% default is idealized; actual electrical consumption will normally be higher.")
+
+
 def main():
     print("=" * 68)
     print("PUMP TOTAL DYNAMIC HEAD (TDH) CALCULATOR")
@@ -179,6 +310,13 @@ def main():
         return
 
     print("\n" + "=" * 68)
+    power_result = None
+    if result["total_tdh_m"] >= 0:
+        if read_choice("\nCalculate pump and motor power? [y/N]: ", ["y", "Y", "n", "N"]) in ("y", "Y"):
+            power_result = collect_power_results(flow, result["total_tdh_m"], fluid.density_kg_m3)
+    else:
+        print("\nPower calculation skipped because required TDH is negative.")
+
     print("FLUID PROPERTY ESTIMATES")
     print(f"EC (temperature-compensated to 25 °C) : {fluid.ec_ms_cm:.3f} mS/cm")
     print(f"Operating water temperature           : {fluid.temperature_c:.2f} °C")
@@ -203,6 +341,7 @@ def main():
     print(f"Equipment pressure loss               : {result['equipment_loss_m']:.4f} m")
     print("-" * 68)
     print(f"REQUIRED PUMP TDH                     : {result['total_tdh_m']:.4f} m")
+    print_power_results(power_result)
     if result["total_tdh_m"] < 0:
         print("NOTE: Negative TDH indicates boundary conditions/gravity head may drive the flow; verify system definition.")
     if result["friction_warning"]:
