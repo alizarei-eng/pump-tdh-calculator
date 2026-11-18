@@ -306,6 +306,13 @@ def print_input_review(inputs):
         rows.append(("16", "Pump efficiency", f"{inputs['pump_efficiency'] * 100:.3f} %"))
     if inputs.get("motor_efficiency") is not None:
         rows.append(("17", "Motor efficiency", f"{inputs['motor_efficiency'] * 100:.3f} %"))
+    if inputs.get("shaft_power_kw") is not None:
+        rows.append(("18", "Interpolated pump shaft power", f"{inputs['shaft_power_kw']:.4f} kW"))
+    if inputs.get("curve_head_m") is not None:
+        rows.append(("19", "Interpolated pump-curve head", f"{inputs['curve_head_m']:.4f} m"))
+    if inputs.get("curve_points"):
+        for i, point in enumerate(inputs["curve_points"], 1):
+            rows.append((f"C{i}", "Pump-curve point", str(point)))
     if inputs.get("pipe_description"):
         rows.append(("-", "Selected pipe/catalogue", inputs["pipe_description"]))
     for number, label, value in rows:
@@ -364,6 +371,7 @@ def calculate_and_print(inputs):
                 inputs["shaft_power_kw"] = power_result["_shaft_power_input_kw"]
                 inputs["curve_head_m"] = power_result["curve_head_m"]
                 inputs["curve_warning"] = power_result["curve_warning"]
+                inputs["curve_points"] = power_result["_curve_points"]
 
     print("\n" + "=" * 68)
     print("FLUID PROPERTY ESTIMATES")
@@ -495,6 +503,7 @@ def main():
         "power_mode": None, "power_method_label": "Not yet configured",
         "pump_efficiency": None, "motor_efficiency": None,
         "shaft_power_kw": None, "curve_head_m": None, "curve_warning": None,
+        "curve_points": [],
     }
 
     while True:
